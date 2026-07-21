@@ -1,0 +1,25 @@
+# DEPLOYMENT.md: {{product_name}}
+
+## 1. Prerequisites
+{{prerequisites}}
+
+## 2. Environment Setup
+{{environment_setup}}
+
+## 3. Installation Steps
+{{installation_steps}}
+
+## 4. Configuration
+{{configuration}}
+
+## 5. Database Migration
+{{database_migration}}
+
+## 6. Deployment Steps
+{{deployment_steps}}
+
+## 7. Verification
+{{verification}}
+
+## 8. Rollback
+{{rollback}}

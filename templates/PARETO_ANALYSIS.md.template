@@ -1,0 +1,88 @@
+# Pareto Analysis: {{product_name}} v1.0 Scope
+
+## Executive Summary
+- **Total features considered:** {{total_features}}
+- **v1.0 features (20%):** {{v1_features}} — will deliver 80% of value
+- **Deferred features (80%):** {{deferred_features}} — post-v1.0
+- **Decision date:** {{decision_date}}
+
+## Pareto Scoring Rubric
+
+### 3-Axis Scoring (0-5 per axis, max 15)
+
+| Axis | 0 | 3 | 5 |
+|------|---|---|---|
+| **Value (V)** | No business value | Saves {{value_3_example}} | {{value_5_example}} |
+| **Frequency (F)** | {{frequency_0_example}} | {{frequency_3_example}} | {{frequency_5_example}} |
+| **Demo-ability (D)** | {{demo_0_example}} | {{demo_3_example}} | {{demo_5_example}} |
+
+### Decision Bands
+
+| Total Score | Tier | Decision |
+|-------------|------|----------|
+| **≥12** | Must-have | Ship in v1.0 no matter what |
+| **9-11** | Should-have | Ship if cheap (<5 story points) |
+| **6-8** | Could-have | Defer to v1.1+ (post-launch) |
+| **<6** | Won't-have | Explicit cut |
+
+## Feature Scoring
+
+| Feature | V | F | D | Total | Tier | Decision |
+|---------|---|---|---|-------|------|----------|
+{{feature_scoring_table}}
+
+## v1.0 Scope (The Vital 20%)
+
+### Must-Have Features (Score ≥12)
+{{must_have_features_list}}
+
+**Total v1.0 features:** {{v1_count}}  
+**Estimated effort:** {{v1_effort}} story points / {{v1_weeks}} weeks  
+**Expected value delivery:** 80% of total value
+
+## Deferred Features (The Trivial 80%)
+
+### Should-Have (Score 9-11) — Ship If Cheap
+{{should_have_features_list}}
+
+### Could-Have (Score 6-8) — v1.1+
+{{could_have_features_list}}
+
+### Won't-Have (Score <6) — Explicit Cuts
+{{wont_have_features_list}}
+
+## 3-Rule Scope Creep Guardrail
+
+**Rule 1: Pareto Gate**
+- New feature must score ≥12 to ship in v1.0
+
+**Rule 2: Pricing Test**
+- Feature must command ≥$2K/yr premium from customer
+
+**Rule 3: Customer Pull**
+- Must be requested by paying customer (or signed LOI)
+
+## Trade-off Analysis
+
+### If We Add {{feature_x}} to v1.0:
+- **Cost:** {{feature_x_cost}} story points, {{feature_x_weeks}} weeks
+- **Risk:** {{feature_x_risk}}
+- **Benefit:** {{feature_x_benefit}}
+- **Decision:** {{feature_x_decision}} (Add/Defer)
+
+### If We Remove {{feature_y}} from v1.0:
+- **Savings:** {{feature_y_savings}} story points, {{feature_y_weeks}} weeks
+- **Risk:** {{feature_y_risk}}
+- **Benefit:** {{feature_y_benefit}}
+- **Decision:** {{feature_y_decision}} (Keep/Remove)
+
+## Stakeholder Alignment
+
+| Stakeholder | Concern | Resolution |
+|-------------|---------|------------|
+{{stakeholder_table}}
+
+## Review Cadence
+- **Weekly:** Review P0 features in sprint
+- **Monthly:** Re-score P1/P2 features based on customer feedback
+- **Per-sprint:** Apply 3-rule guardrail to new feature requests

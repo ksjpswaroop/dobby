@@ -1,0 +1,19 @@
+# WIREFRAMES.md: {{product_name}}
+
+## Screen 1: {{screen_1_name}}
+{{screen_1_ascii}}
+
+## Screen 2: {{screen_2_name}}
+{{screen_2_ascii}}
+
+[Continue for all screens...]
+
+## States
+### Empty State
+{{empty_state}}
+
+### Loading State
+{{loading_state}}
+
+### Error State
+{{error_state}}

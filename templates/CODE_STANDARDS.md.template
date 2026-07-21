@@ -1,0 +1,28 @@
+# CODE_STANDARDS.md: {{product_name}}
+
+## Python Style Guide
+{{python_style}}
+
+## Linting & Formatting
+{{linting_formatting}}
+
+## Testing Standards
+{{testing_standards}}
+
+## Code Review Checklist
+{{review_checklist}}
+
+## Git Standards
+{{git_standards}}
+
+## Security Standards
+{{security_standards}}
+
+## Performance Standards
+{{performance_standards}}
+
+## Documentation Standards
+{{documentation_standards}}
+
+## CI/CD Standards
+{{cicd_standards}}

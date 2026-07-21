@@ -1,0 +1,19 @@
+# VERIFICATION_PLAN.md: {{product_name}}
+
+## 1. Verification Strategy
+{{verification_strategy}}
+
+## 2. Cross-Reference Checks
+{{cross_reference_checks}}
+
+## 3. Consistency Scoring
+{{consistency_scoring}}
+
+## 4. Completeness Verification
+{{completeness_verification}}
+
+## 5. Quality Gates
+{{quality_gates}}
+
+## 6. Acceptance Criteria
+{{acceptance_criteria}}

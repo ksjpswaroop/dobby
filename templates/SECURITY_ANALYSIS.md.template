@@ -1,0 +1,28 @@
+# Security Analysis: {{product_name}}
+
+## Executive Summary
+{{executive_summary}}
+
+## Threat Model (STRIDE)
+{{stride_analysis}}
+
+## Attack Surface
+{{attack_surface}}
+
+## Security Controls
+{{security_controls}}
+
+## Vulnerability Assessment
+{{vulnerability_assessment}}
+
+## Compliance Considerations
+{{compliance}}
+
+## Security Testing
+{{security_testing}}
+
+## Incident Response
+{{incident_response}}
+
+## Security Roadmap
+{{security_roadmap}}

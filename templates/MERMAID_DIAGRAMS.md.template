@@ -1,0 +1,26 @@
+# Mermaid Diagrams: {{product_name}}
+
+## System Architecture
+```mermaid
+{{system_architecture_mermaid}}
+```
+
+## Data Flow
+```mermaid
+{{data_flow_mermaid}}
+```
+
+## State Machine
+```mermaid
+{{state_machine_mermaid}}
+```
+
+## Component Diagram
+```mermaid
+{{component_diagram_mermaid}}
+```
+
+## Deployment Architecture
+```mermaid
+{{deployment_mermaid}}
+```

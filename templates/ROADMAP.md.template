@@ -1,0 +1,30 @@
+# ROADMAP.md: {{product_name}}
+
+## Executive Summary
+{{executive_summary}}
+
+## Vision
+{{vision}}
+
+## Strategic Themes
+{{strategic_themes}}
+
+## Timeline
+
+### Q{{quarter_1}} {{year}}
+{{q1_initiatives}}
+
+### Q{{quarter_2}} {{year}}
+{{q2_initiatives}}
+
+### Q{{quarter_3}} {{year}}
+{{q3_initiatives}}
+
+### Q{{quarter_4}} {{year}}
+{{q4_initiatives}}
+
+## Success Metrics
+{{success_metrics}}
+
+## Risks & Mitigations
+{{risks}}

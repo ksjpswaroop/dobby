@@ -1,0 +1,28 @@
+# Feature Research: {{product_category}}
+
+## Executive Summary
+- **Competitors analyzed:** {{competitors_list}}
+- **Total features compared:** {{feature_count}}
+- **Key gaps identified:** {{top_3_gaps}}
+- **Recommendation:** {{recommendation}}
+
+## Competitor Overview
+{{competitor_overviews}}
+
+## Feature Comparison Matrix
+{{feature_matrix}}
+
+## Architecture Comparison
+{{architecture_comparison}}
+
+## Implementation Gaps (Opportunities)
+{{implementation_gaps}}
+
+## Strategic Recommendations
+{{strategic_recommendations}}
+
+## Implementation Priority (Pareto)
+{{priority_table}}
+
+## References
+{{references}}

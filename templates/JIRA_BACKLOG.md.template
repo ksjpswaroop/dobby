@@ -1,0 +1,31 @@
+# Jira Backlog: {{product_name}}
+
+## Export Instructions
+{{export_instructions}}
+
+## Epic 1: Foundation (EPIC-1)
+{{epic_1_table}}
+
+## Epic 2: Core Agents (EPIC-2)
+{{epic_2_table}}
+
+## Epic 3: Parallel Execution (EPIC-3)
+{{epic_3_table}}
+
+## Epic 4: Verification & Output (EPIC-4)
+{{epic_4_table}}
+
+## Epic 5: CLI & API (EPIC-5)
+{{epic_5_table}}
+
+## Sprints
+{{sprints}}
+
+## Custom Fields Mapping
+{{fields_mapping}}
+
+## Bulk Operations
+{{bulk_operations}}
+
+## Export Files
+{{export_files}}

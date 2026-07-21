@@ -1,0 +1,43 @@
+# ARCHITECTURE.md: {{product_name}}
+
+## 1. System Overview
+{{system_overview}}
+
+## 2. Architectural Principles
+{{architectural_principles}}
+
+## 3. Component Architecture
+{{component_architecture}}
+
+## 4. Data Architecture
+{{data_architecture}}
+
+## 5. Interface Definitions
+{{interface_definitions}}
+
+## 6. Deployment Architecture
+{{deployment_architecture}}
+
+## 7. Security Architecture
+{{security_architecture}}
+
+## 8. Performance Architecture
+{{performance_architecture}}
+
+## 9. Error Handling Strategy
+{{error_handling}}
+
+## 10. Monitoring & Observability
+{{monitoring_observability}}
+
+## 11. Architecture Decision Records
+{{adrs}}
+
+## 12. Future Considerations
+{{future_considerations}}
+
+## 13. Appendix: Dependency Tree
+{{dependency_tree}}
+
+## 14. Appendix: State Directory Layout
+{{state_directory_layout}}

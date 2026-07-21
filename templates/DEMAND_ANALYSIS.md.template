@@ -1,0 +1,54 @@
+# Demand Analysis: {{product_name}}
+
+## Executive Summary
+- **Problem being solved:** {{problem_statement}}
+- **Target users:** {{target_users}}
+- **Frequency:** {{usage_frequency}}
+- **Willingness to pay:** {{willingness_to_pay_evidence}}
+
+## Problem Validation
+
+### User Interviews (n={{interview_count}})
+| User | Role | Problem Frequency | Current Solution | Pain Level (1-10) |
+|------|------|-------------------|------------------|-------------------|
+| {{user_1}} | {{role_1}} | {{frequency_1}} | {{solution_1}} | {{pain_1}} |
+| {{user_2}} | {{role_2}} | {{frequency_2}} | {{solution_2}} | {{pain_2}} |
+
+### Market Signals
+- [ ] Google Trends: {{search_volume_trend}}
+- [ ] Reddit discussions: {{reddit_post_count}}
+- [ ] Twitter mentions: {{twitter_volume}}
+- [ ] Competitor funding: {{recent_funding}}
+- [ ] Job postings: {{job_demand}}
+
+### Willingness to Pay Evidence
+- [ ] Existing solutions charge ${{competitor_price}}/month
+- [ ] Users currently spend ${{workaround_cost}}/month on workarounds
+- [ ] Users currently spend {{hours_per_week}} hours/week on manual work
+- [ ] Pre-orders/LOIs: {{interested_customers}} customers
+
+## Demand Score (0-100)
+
+| Factor | Score (0-10) | Weight | Weighted Score |
+|--------|--------------|--------|----------------|
+| Problem frequency | {{freq_score}} | 2x | {{freq_weighted}} |
+| Pain intensity | {{pain_score}} | 2x | {{pain_weighted}} |
+| Existing spend | {{spend_score}} | 2x | {{spend_weighted}} |
+| Market growth | {{growth_score}} | 1x | {{growth_weighted}} |
+| Competitive validation | {{comp_score}} | 1x | {{comp_weighted}} |
+| **Total** | | | **{{total_score}}/100** |
+
+**Interpretation:**
+- 80-100: Strong demand, proceed immediately
+- 60-79: Moderate demand, validate further
+- 40-59: Weak demand, pivot or shelve
+- <40: No demand, do not build
+
+## Risks & Assumptions
+- {{assumption_1}}: {{risk_if_wrong_1}}
+- {{assumption_2}}: {{risk_if_wrong_2}}
+
+## Recommendation
+**{{recommendation}}** (Build / Validate Further / Pivot / Shelve)
+
+**Rationale:** {{rationale}}

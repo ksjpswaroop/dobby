@@ -1,0 +1,22 @@
+# DATA_MODEL.md: {{product_name}}
+
+## Entities
+{{entities}}
+
+## Relationships
+{{relationships}}
+
+## ER Diagram
+{{er_diagram}}
+
+## Schema Definition
+{{schema}}
+
+## Indexes
+{{indexes}}
+
+## Constraints
+{{constraints}}
+
+## Migrations
+{{migrations}}

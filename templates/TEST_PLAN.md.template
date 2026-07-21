@@ -1,0 +1,25 @@
+# TEST_PLAN.md: {{product_name}}
+
+## 1. Test Strategy
+{{test_strategy}}
+
+## 2. Test Scope
+{{test_scope}}
+
+## 3. Test Types
+{{test_types}}
+
+## 4. Test Environment
+{{test_environment}}
+
+## 5. Test Tools
+{{test_tools}}
+
+## 6. Test Schedule
+{{test_schedule}}
+
+## 7. Test Deliverables
+{{test_deliverables}}
+
+## 8. Risk Management
+{{risk_management}}

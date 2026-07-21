@@ -1,0 +1,25 @@
+# DESIGN_SYSTEM.md: {{product_name}}
+
+## 1. Color Palette
+{{color_palette}}
+
+## 2. Typography
+{{typography}}
+
+## 3. Spacing
+{{spacing}}
+
+## 4. Iconography
+{{iconography}}
+
+## 5. Motion
+{{motion}}
+
+## 6. Components
+{{components}}
+
+## 7. States
+{{states}}
+
+## 8. Accessibility (WCAG)
+{{accessibility}}

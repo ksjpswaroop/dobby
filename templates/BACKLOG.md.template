@@ -1,0 +1,31 @@
+# BACKLOG.md: {{product_name}}
+
+## 1. Conventions
+{{conventions}}
+
+## 2. Phase 0 — Scaffolding
+{{phase_0_stories}}
+
+## 3. Phase 1 — Core Features
+{{phase_1_stories}}
+
+## 4. Phase 2 — {{phase_2_name}}
+{{phase_2_stories}}
+
+## 5. Phase 3 — {{phase_3_name}}
+{{phase_3_stories}}
+
+## 6. Phase 4 — Polish
+{{phase_4_stories}}
+
+## 7. Phase 5 — Launch
+{{phase_5_stories}}
+
+## 8. Backlog Summary
+{{backlog_summary}}
+
+## 9. Deferred / v2.0 Candidates
+{{deferred_stories}}
+
+## 10. Dependencies & Risks
+{{dependencies_risks}}

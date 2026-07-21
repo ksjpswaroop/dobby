@@ -1,0 +1,16 @@
+# Architecture Diagrams: {{product_name}}
+
+## 1. High-Level System Overview
+{{ascii_system_overview}}
+
+## 2. Component Breakdown
+{{component_breakdown}}
+
+## 3. Data Flow Diagrams
+{{data_flow_ascii}}
+
+## 4. Deployment Diagram
+{{deployment_ascii}}
+
+## 5. Security Architecture
+{{security_ascii}}

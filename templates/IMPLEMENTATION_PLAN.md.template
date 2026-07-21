@@ -1,0 +1,28 @@
+# IMPLEMENTATION_PLAN.md: {{product_name}}
+
+## 1. Executive Summary
+{{executive_summary}}
+
+## 2. Sprint Breakdown (Week 1-5)
+{{sprint_breakdown}}
+
+## 3. Technical Dependencies
+{{technical_dependencies}}
+
+## 4. Risk Mitigation
+{{risk_mitigation}}
+
+## 5. Definition of Done
+{{definition_of_done}}
+
+## 6. Resource Allocation
+{{resource_allocation}}
+
+## 7. Milestones & Checkpoints
+{{milestones}}
+
+## 8. Open Questions
+{{open_questions}}
+
+## 9. Appendix: Task Dependency Graph
+{{dependency_graph}}

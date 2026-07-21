@@ -1,0 +1,22 @@
+# RUNBOOK.md: {{product_name}}
+
+## 1. System Overview
+{{system_overview}}
+
+## 2. Monitoring
+{{monitoring}}
+
+## 3. Alerts
+{{alerts}}
+
+## 4. Common Issues
+{{common_issues}}
+
+## 5. Escalation
+{{escalation}}
+
+## 6. Maintenance
+{{maintenance}}
+
+## 7. Backup & Recovery
+{{backup_recovery}}

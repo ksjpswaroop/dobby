@@ -1,0 +1,91 @@
+# Market Research: {{product_category}}
+
+## Executive Summary
+- **TAM:** ${{tam}}B (Source: {{tam_source}}, {{tam_year}})
+- **SAM:** ${{sam}}B (Segment you can reach)
+- **SOM:** ${{som}}M (Realistic Year 1-3 capture)
+- **CAGR:** {{cagr}}% (Growth rate)
+
+## Market Sizing
+
+### TAM (Total Addressable Market)
+- **Definition:** {{tam_definition}}
+- **Size:** ${{tam}}B
+- **Source:** {{tam_source}}, {{tam_year}}
+- **Methodology:** {{tam_methodology}}
+
+### SAM (Serviceable Addressable Market)
+- **Definition:** {{sam_definition}}
+- **Size:** ${{sam}}B
+- **Calculation:** TAM × {{geo_percent}}% × {{segment_percent}}% × {{accessibility_percent}}%
+- **Assumptions:** {{sam_assumptions}}
+
+### SOM (Serviceable Obtainable Market)
+- **Definition:** {{som_definition}}
+- **Size:** ${{som}}M (Year 3)
+- **Calculation:** SAM × {{market_share_percent}}%
+- **Path to capture:** {{capture_strategy}}
+
+## Market Dynamics
+
+### Growth Trajectory
+| Year | Market Size | Growth Rate | Key Driver |
+|------|-------------|-------------|------------|
+| 2024 | ${{market_2024}}B | {{growth_2024}}% | {{driver_2024}} |
+| 2025 | ${{market_2025}}B | {{growth_2025}}% | {{driver_2025}} |
+| 2026 | ${{market_2026}}B | {{growth_2026}}% | {{driver_2026}} |
+| 2027 | ${{market_2027}}B | {{growth_2027}}% | {{driver_2027}} |
+| 2028 | ${{market_2028}}B | {{growth_2028}}% | {{driver_2028}} |
+
+### Key Market Drivers
+1. **{{driver_1_name}}:** {{driver_1_description}}
+2. **{{driver_2_name}}:** {{driver_2_description}}
+3. **{{driver_3_name}}:** {{driver_3_description}}
+
+### Headwinds & Risks
+1. **{{risk_1_name}}:** {{risk_1_description}}, mitigation: {{mitigation_1}}
+2. **{{risk_2_name}}:** {{risk_2_description}}, mitigation: {{mitigation_2}}
+
+## Market Segments
+
+### Segment 1: {{segment_1_name}}
+- **Size:** ${{segment_1_size}}B ({{segment_1_percent}}% of TAM)
+- **Characteristics:** {{segment_1_characteristics}}
+- **Growth:** {{segment_1_growth}}% CAGR
+- **Accessibility:** {{segment_1_accessibility}}
+
+### Segment 2: {{segment_2_name}}
+- **Size:** ${{segment_2_size}}B ({{segment_2_percent}}% of TAM)
+- **Characteristics:** {{segment_2_characteristics}}
+- **Growth:** {{segment_2_growth}}% CAGR
+- **Accessibility:** {{segment_2_accessibility}}
+
+## Competitive Landscape
+- **Market concentration:** {{market_concentration}} (Fragmented/Consolidated)
+- **Top 3 players:** {{player_1}} ({{share_1}}%), {{player_2}} ({{share_2}}%), {{player_3}} ({{share_3}}%)
+- **Barriers to entry:** {{barriers}} (High/Medium/Low)
+- **Switching costs:** {{switching_costs}} (High/Medium/Low)
+
+## Trends & Signals
+
+### Emerging Trends (2025-2026)
+1. **{{trend_1}}:** {{trend_1_description}}, opportunity: {{trend_1_opportunity}}
+2. **{{trend_2}}:** {{trend_2_description}}, opportunity: {{trend_2_opportunity}}
+
+### Technology Shifts
+- **{{tech_shift_1}}:** {{tech_shift_1_impact}}
+- **{{tech_shift_2}}:** {{tech_shift_2_impact}}
+
+### Customer Behavior Changes
+- **{{behavior_change_1}}:** {{behavior_change_1_implication}}
+- **{{behavior_change_2}}:** {{behavior_change_2_implication}}
+
+## Sources
+- {{source_1}}: {{source_1_url}}, accessed {{access_date}}
+- {{source_2}}: {{source_2_url}}, accessed {{access_date}}
+
+## Verification
+- [ ] All data points have sources
+- [ ] Dates recorded for all data
+- [ ] TAM/SAM/SOM clearly distinguished
+- [ ] Growth trajectory evidence-based

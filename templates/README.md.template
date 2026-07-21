@@ -1,0 +1,33 @@
+# {{product_name}}
+
+{{tagline}}
+
+## Quickstart
+
+```bash
+{{quickstart_command}}
+```
+
+## Installation
+
+{{installation_steps}}
+
+## Usage
+
+{{usage_examples}}
+
+## Features
+
+{{features_list}}
+
+## Documentation
+
+{{documentation_links}}
+
+## Contributing
+
+{{contributing_guidelines}}
+
+## License
+
+{{license}}
