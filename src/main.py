@@ -137,6 +137,10 @@ app.include_router(settings_router)
 from src.api.generation_routes import router as generation_router
 app.include_router(generation_router)
 
+# Include runs routes (Logs & Traces + live progress stream)
+from src.api.runs_routes import router as runs_router
+app.include_router(runs_router)
+
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])

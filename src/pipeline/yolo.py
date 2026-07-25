@@ -12,10 +12,14 @@ but with less user control during generation.
 """
 
 from dataclasses import dataclass
-from typing import Dict, Any, Optional, List
+from typing import TYPE_CHECKING, Dict, Any, Optional, List
 from datetime import datetime
 import structlog
+import time
 import uuid
+
+if TYPE_CHECKING:  # avoids a runtime import cycle
+    from src.observability.tracer import Tracer
 
 from src.db.schema import DatabaseManager, Project, Node, Edge
 from src.graph.graph import DocumentGraph, GraphNode, GraphEdge, NodeType, EdgeType, NodeStatus
@@ -105,6 +109,7 @@ class YOLOPipeline:
         feature_title: str,
         feature_description: str,
         user_id: Optional[str] = None,
+        tracer: Optional["Tracer"] = None,
     ) -> YOLOGenerationResult:
         """
         Generate complete feature documentation instantly
@@ -150,60 +155,58 @@ class YOLOPipeline:
                 session.add(feature_node)
                 session.commit()
             
-            # Generate all 7 steps sequentially
+            # Generate all 7 steps sequentially. Each step feeds the next, and
+            # each is traced so the UI can show live progress instead of a
+            # spinner (see src/observability/tracer.py).
             all_content: Dict[str, str] = {}
-            
-            # Step 1: Feature Specification
-            logger.info("yolo_step_1_generating", step="feature_spec")
-            feature_spec = await self.ollama.generate_feature_spec(
-                product_name="Product",
-                idea=feature_description,
-                feature_title=feature_title,
-            )
-            all_content["feature_spec"] = feature_spec
-            
-            # Step 2: User Story
-            logger.info("yolo_step_2_generating", step="user_story")
-            user_story = await self.ollama.generate_user_story(
-                feature_spec=feature_spec,
-            )
-            all_content["user_story"] = user_story
-            
-            # Step 3: Functional Analysis
-            logger.info("yolo_step_3_generating", step="functional_analysis")
-            functional_analysis = await self.ollama.generate_functional_analysis(
-                user_story=user_story,
-            )
-            all_content["functional_analysis"] = functional_analysis
-            
-            # Step 4: Flowchart
-            logger.info("yolo_step_4_generating", step="flowchart")
-            flowchart = await self.ollama.generate_flowchart(
-                functional_analysis=functional_analysis,
-            )
-            all_content["flowchart"] = flowchart
-            
-            # Step 5: Pseudocode
-            logger.info("yolo_step_5_generating", step="pseudocode")
-            pseudocode = await self.ollama.generate_pseudocode(
-                flowchart=flowchart,
-            )
-            all_content["pseudocode"] = pseudocode
-            
-            # Step 6: TDD Tests
-            logger.info("yolo_step_6_generating", step="tdd_tests")
-            tdd_tests = await self.ollama.generate_tdd_tests(
-                pseudocode=pseudocode,
-            )
-            all_content["tdd_tests"] = tdd_tests
-            
-            # Step 7: Documentation
-            logger.info("yolo_step_7_generating", step="documentation")
-            documentation = await self.ollama.generate_documentation(
-                tdd_tests=tdd_tests,
-            )
-            all_content["documentation"] = documentation
-            
+
+            steps = [
+                ("feature_spec", "Feature Specification",
+                 lambda _prev: self.ollama.generate_feature_spec(
+                     product_name="Product",
+                     idea=feature_description,
+                     feature_title=feature_title,
+                 )),
+                ("user_story", "User Story",
+                 lambda prev: self.ollama.generate_user_story(feature_spec=prev)),
+                ("functional_analysis", "Functional Analysis",
+                 lambda prev: self.ollama.generate_functional_analysis(user_story=prev)),
+                ("flowchart", "Flowchart",
+                 lambda prev: self.ollama.generate_flowchart(functional_analysis=prev)),
+                ("pseudocode", "Pseudocode",
+                 lambda prev: self.ollama.generate_pseudocode(flowchart=prev)),
+                ("tdd_tests", "TDD Tests",
+                 lambda prev: self.ollama.generate_tdd_tests(pseudocode=prev)),
+                ("documentation", "Documentation",
+                 lambda prev: self.ollama.generate_documentation(tdd_tests=prev)),
+            ]
+
+            prev = ""
+            for idx, (key, label, call) in enumerate(steps, start=1):
+                logger.info(f"yolo_step_{idx}_generating", step=key)
+                if tracer:
+                    tracer.event("step.start", f"Generating {label}…", step=key)
+                t0 = time.perf_counter()
+                prev = await call(prev)
+                elapsed = int((time.perf_counter() - t0) * 1000)
+                all_content[key] = prev
+                if tracer:
+                    tracer.event(
+                        "step.done",
+                        f"{label} ({len(prev.split())} words, {elapsed / 1000:.1f}s)",
+                        step=key,
+                        duration_ms=elapsed,
+                        advance=True,
+                    )
+
+            feature_spec = all_content["feature_spec"]
+            user_story = all_content["user_story"]
+            functional_analysis = all_content["functional_analysis"]
+            flowchart = all_content["flowchart"]
+            pseudocode = all_content["pseudocode"]
+            tdd_tests = all_content["tdd_tests"]
+            documentation = all_content["documentation"]
+
             # Combine all content for verification
             combined_content = f"""
 # {feature_title}
@@ -232,6 +235,8 @@ class YOLOPipeline:
             
             # Verify combined content
             logger.info("yolo_verifying_final_output")
+            if tracer:
+                tracer.event("verify.start", "Verifying generated documents…")
             verification = await self.verifier.verify_section(
                 section_id=feature_node_id,
                 content=combined_content,
@@ -298,7 +303,20 @@ class YOLOPipeline:
                 verification_score=verification.overall_score,
                 passed=verification.passed,
             )
-            
+            if tracer:
+                tracer.event(
+                    "verify.done",
+                    f"Verification {'passed' if verification.passed else 'below threshold'} "
+                    f"({verification.overall_score:.0f}/100)",
+                    level="info" if verification.passed else "warn",
+                    score=verification.overall_score,
+                )
+                tracer.finish(
+                    "ok",
+                    score=verification.overall_score,
+                    node_id=feature_node_id,
+                )
+
             return YOLOGenerationResult(
                 success=True,
                 feature_node_id=feature_node_id,
@@ -306,13 +324,16 @@ class YOLOPipeline:
                 all_content=all_content,
                 verification=verification,
             )
-        
+
         except Exception as e:
             logger.error(
                 "yolo_generation_failed",
                 feature_title=feature_title,
                 error=str(e),
             )
+            if tracer:
+                tracer.event("run.error", str(e), level="error")
+                tracer.finish("failed", error=str(e))
             
             return YOLOGenerationResult(
                 success=False,

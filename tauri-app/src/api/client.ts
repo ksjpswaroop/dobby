@@ -174,6 +174,35 @@ export interface DocumentsResponse {
   features: DocumentGroup[];
 }
 
+export interface RunInfo {
+  id: string;
+  project_id: string | null;
+  kind: string;
+  label: string;
+  status: 'running' | 'ok' | 'failed' | 'cancelled';
+  model: string | null;
+  node_id: string | null;
+  error: string | null;
+  total_steps: number;
+  completed_steps: number;
+  score: number | null;
+  duration_ms: number | null;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface RunEventItem {
+  seq: number;
+  level: 'info' | 'warn' | 'error';
+  event: string;
+  message: string;
+  step: string | null;
+  duration_ms: number | null;
+  tokens: number | null;
+  score: number | null;
+  ts: string | null;
+}
+
 export interface NodeContent {
   id: string;
   project_id: string;
@@ -410,6 +439,22 @@ export const api = {
   async getNode(nodeId: string): Promise<NodeContent> {
     return http('GET', `/nodes/${nodeId}`);
   },
+
+  // Runs — Logs & Traces
+  async listRuns(projectId?: string, limit = 50): Promise<{ count: number; runs: RunInfo[] }> {
+    return http('GET', `/runs${qs({ project_id: projectId, limit })}`);
+  },
+
+  async getRun(runId: string): Promise<{ run: RunInfo; events: RunEventItem[] }> {
+    return http('GET', `/runs/${runId}`);
+  },
+
+  async clearRuns(projectId?: string): Promise<{ deleted: number }> {
+    return http('DELETE', `/runs${qs({ project_id: projectId })}`);
+  },
 };
+
+/** Base URL of the live run-event stream (SSE). */
+export const RUN_STREAM_URL = `${API_BASE}/runs/stream`;
 
 export default api;

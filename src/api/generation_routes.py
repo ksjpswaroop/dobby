@@ -124,8 +124,17 @@ async def yolo_generate(project_id: str, req: FeatureRequest, db: DatabaseManage
         pipeline = await get_yolo_pipeline(db)
     except OllamaConnectionError as e:
         raise HTTPException(status_code=503, detail=str(e))
+    from src.observability.tracer import get_tracer
+    from src.settings import get_settings
+
+    tracer = get_tracer(
+        db, kind="yolo", label=req.title, project_id=project_id,
+        model=get_settings().model, total_steps=7,
+    )
     try:
-        result = await pipeline.generate_instant(project_id, req.title, req.description)
+        result = await pipeline.generate_instant(
+            project_id, req.title, req.description, tracer=tracer
+        )
         return {
             "success": result.success,
             "feature_node_id": result.feature_node_id,
@@ -182,9 +191,20 @@ async def bulk_generate(project_id: str, req: BulkRequest, db: DatabaseManager =
     verifier = get_verifier()
     sem = asyncio.Semaphore(max(1, min(req.concurrency, 5)))
 
+    from src.observability.tracer import get_tracer
+    from src.settings import get_settings
+
+    active_model = get_settings().model
+
     async def run_one(idea: BulkIdea) -> Dict[str, Any]:
         async with sem:
-            res = await pipeline.generate_instant(project_id, idea.title, idea.description)
+            tracer = get_tracer(
+                db, kind="bulk", label=idea.title, project_id=project_id,
+                model=active_model, total_steps=7,
+            )
+            res = await pipeline.generate_instant(
+                project_id, idea.title, idea.description, tracer=tracer
+            )
             docs: List[Dict[str, Any]] = []
             for key, node_type in DOC_TYPES:
                 content = (res.all_content or {}).get(key, "") or ""

@@ -369,6 +369,11 @@ class DatabaseManager:
         SessionLocal = sessionmaker(bind=self.engine, expire_on_commit=False)
         self.SessionLocal = SessionLocal
         
+        # Register models defined in sibling modules so create_all sees their
+        # tables. Imported here (not at module top) to avoid a circular import,
+        # since those modules import Base from this one.
+        from src.db import run_models  # noqa: F401
+
         # Create all tables
         Base.metadata.create_all(bind=self.engine)
         

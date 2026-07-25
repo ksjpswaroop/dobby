@@ -10,11 +10,12 @@ import BacklogPage from './pages/BacklogPage';
 import Bulk from './pages/Bulk';
 import Settings from './pages/Settings';
 import Planned from './pages/Planned';
+import Logs from './pages/Logs';
 
 // Planned surfaces (on the roadmap) render a consistent "coming soon" placeholder.
 const PLANNED_ROUTES = [
   '/mindmap', '/prototypes', '/video', '/transcribe', '/youtube', '/notes',
-  '/command', '/skills', '/flows', '/terminal', '/logs', '/control',
+  '/command', '/skills', '/flows', '/terminal', '/control',
   '/search', '/marketplace',
 ];
 
@@ -31,6 +32,7 @@ function App() {
         <Route path="/bulk" element={<Bulk />} />
         <Route path="/graph" element={<GraphPage />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/logs" element={<Logs />} />
         {/* Section landings redirect to their first tab. */}
         <Route path="/create" element={<Navigate to="/wizard" replace />} />
         <Route path="/automate" element={<Navigate to="/skills" replace />} />
