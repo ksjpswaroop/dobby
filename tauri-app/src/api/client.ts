@@ -203,6 +203,16 @@ export interface RunEventItem {
   ts: string | null;
 }
 
+export interface SearchResult {
+  type: 'project' | 'document' | 'feature' | 'run';
+  id: string;
+  title: string;
+  subtitle: string;
+  snippet: string;
+  route: string;
+  project_id?: string;
+}
+
 export interface NodeContent {
   id: string;
   project_id: string;
@@ -451,6 +461,15 @@ export const api = {
 
   async clearRuns(projectId?: string): Promise<{ deleted: number }> {
     return http('DELETE', `/runs${qs({ project_id: projectId })}`);
+  },
+
+  // Global search
+  async search(
+    q: string,
+    projectId?: string,
+    limit = 30
+  ): Promise<{ query: string; count: number; results: SearchResult[] }> {
+    return http('GET', `/search${qs({ q, project_id: projectId, limit })}`);
   },
 };
 

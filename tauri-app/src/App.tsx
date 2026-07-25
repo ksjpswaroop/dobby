@@ -11,12 +11,14 @@ import Bulk from './pages/Bulk';
 import Settings from './pages/Settings';
 import Planned from './pages/Planned';
 import Logs from './pages/Logs';
+import Search from './pages/Search';
+import CommandCenter from './pages/CommandCenter';
 
 // Planned surfaces (on the roadmap) render a consistent "coming soon" placeholder.
 const PLANNED_ROUTES = [
   '/mindmap', '/prototypes', '/video', '/transcribe', '/youtube', '/notes',
-  '/command', '/skills', '/flows', '/terminal', '/control',
-  '/search', '/marketplace',
+  '/skills', '/flows', '/terminal', '/control',
+  '/marketplace',
 ];
 
 function App() {
@@ -33,6 +35,9 @@ function App() {
         <Route path="/graph" element={<GraphPage />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/logs" element={<Logs />} />
+        <Route path="/search" element={<Search />} />
+        {/* The Command Center *is* the ⌘K palette; this route just opens it. */}
+        <Route path="/command" element={<CommandCenter />} />
         {/* Section landings redirect to their first tab. */}
         <Route path="/create" element={<Navigate to="/wizard" replace />} />
         <Route path="/automate" element={<Navigate to="/skills" replace />} />

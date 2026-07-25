@@ -56,8 +56,11 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("dobby_startup", message="Starting Dobby v2.0...")
     
-    # Initialize database
-    db_path = Path.home() / ".dobby" / "dobby.db"
+    # Initialize database. DOBBY_DB_PATH overrides the default location, which
+    # keeps tests (and alternate workspaces) off the user's real database.
+    import os
+
+    db_path = Path(os.environ.get("DOBBY_DB_PATH", Path.home() / ".dobby" / "dobby.db"))
     db_path.parent.mkdir(parents=True, exist_ok=True)
     
     app.state.db = init_database(str(db_path))
@@ -140,6 +143,10 @@ app.include_router(generation_router)
 # Include runs routes (Logs & Traces + live progress stream)
 from src.api.runs_routes import router as runs_router
 app.include_router(runs_router)
+
+# Include search routes (global search across projects/documents/backlog/runs)
+from src.api.search_routes import router as search_router
+app.include_router(search_router)
 
 
 # Health check endpoint

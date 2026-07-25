@@ -74,7 +74,6 @@ class Tracer:
         self._seq = 0
         self._completed = 0
         self._started = datetime.utcnow()
-        self._start_monotonic = asyncio.get_event_loop().time()
         self._create()
 
     # -- lifecycle ---------------------------------------------------------
