@@ -181,6 +181,19 @@ class YOLOPipeline:
                  lambda prev: self.ollama.generate_documentation(tdd_tests=prev)),
             ]
 
+            # Node type for each step, so each artifact can be persisted the
+            # moment it's generated.
+            step_node_types = {
+                "feature_spec": "feature",
+                "user_story": "user_story",
+                "functional_analysis": "functional_analysis",
+                "flowchart": "flowchart",
+                "pseudocode": "pseudocode",
+                "tdd_tests": "tdd_tests",
+                "documentation": "documentation",
+            }
+            all_node_ids = [feature_node_id]
+
             prev = ""
             for idx, (key, label, call) in enumerate(steps, start=1):
                 logger.info(f"yolo_step_{idx}_generating", step=key)
@@ -190,6 +203,31 @@ class YOLOPipeline:
                 prev = await call(prev)
                 elapsed = int((time.perf_counter() - t0) * 1000)
                 all_content[key] = prev
+
+                # Persist this artifact immediately (previously every node was
+                # written in one batch at the end, so the graph could only
+                # appear all at once). Writing per step lets the graph grow live.
+                node_id = str(uuid.uuid4())
+                with self.db.get_session() as session:
+                    session.add(Node(
+                        id=node_id,
+                        project_id=project_id,
+                        node_type=step_node_types[key],
+                        title=key.replace("_", " ").title(),
+                        content=prev,
+                        status="draft",  # draft until the user accepts
+                        parent_id=feature_node_id,
+                    ))
+                    session.add(Edge(
+                        id=str(uuid.uuid4()),
+                        project_id=project_id,
+                        source_node_id=feature_node_id,
+                        target_node_id=node_id,
+                        edge_type="generates",
+                    ))
+                    session.commit()
+                all_node_ids.append(node_id)
+
                 if tracer:
                     tracer.event(
                         "step.done",
@@ -197,6 +235,7 @@ class YOLOPipeline:
                         step=key,
                         duration_ms=elapsed,
                         advance=True,
+                        node_id=node_id,   # lets the UI highlight what just landed
                     )
 
             feature_spec = all_content["feature_spec"]
@@ -247,53 +286,12 @@ class YOLOPipeline:
                 },
             )
             
-            # Create nodes for all steps
-            all_node_ids = [feature_node_id]
-            
+            # Nodes were written per step above; only the feature's status is
+            # left to flip now that every artifact exists.
             with self.db.get_session() as session:
-                step_nodes = [
-                    ("feature_spec", "feature", feature_spec),
-                    ("user_story", "user_story", user_story),
-                    ("functional_analysis", "functional_analysis", functional_analysis),
-                    ("flowchart", "flowchart", flowchart),
-                    ("pseudocode", "pseudocode", pseudocode),
-                    ("tdd_tests", "tdd_tests", tdd_tests),
-                    ("documentation", "documentation", documentation),
-                ]
-                
-                for step_name, node_type, content in step_nodes:
-                    node_id = str(uuid.uuid4())
-                    
-                    node = Node(
-                        id=node_id,
-                        project_id=project_id,
-                        node_type=node_type,
-                        title=step_name.replace("_", " ").title(),
-                        content=content,
-                        status="draft",  # Draft until accepted
-                        parent_id=feature_node_id,
-                    )
-                    
-                    session.add(node)
-                    all_node_ids.append(node_id)
-                    
-                    # Create edge
-                    edge_id = str(uuid.uuid4())
-                    edge = Edge(
-                        id=edge_id,
-                        project_id=project_id,
-                        source_node_id=feature_node_id,
-                        target_node_id=node_id,
-                        edge_type="generates",
-                    )
-                    
-                    session.add(edge)
-                
-                # Update feature node status
                 feature_node = session.query(Node).filter(Node.id == feature_node_id).first()
                 if feature_node:
                     feature_node.status = "pending_review"
-                
                 session.commit()
             
             logger.info(

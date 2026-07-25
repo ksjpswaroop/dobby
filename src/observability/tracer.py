@@ -165,6 +165,7 @@ class Tracer:
                 "score": score,
                 "completed_steps": self._completed,
                 "total_steps": self.total_steps,
+                "node_id": metadata.get("node_id"),
                 "ts": ts.isoformat(),
             }
         )

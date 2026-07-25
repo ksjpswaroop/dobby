@@ -6,9 +6,11 @@ import { Spinner } from './ui';
 
 interface GraphViewerProps {
   mermaidSyntax: string;
+  /** Node ids added moments ago — pulsed so live growth is visible. */
+  highlightIds?: string[];
 }
 
-export default function GraphViewer({ mermaidSyntax }: GraphViewerProps) {
+export default function GraphViewer({ mermaidSyntax, highlightIds = [] }: GraphViewerProps) {
   const { resolved } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
@@ -42,17 +44,24 @@ export default function GraphViewer({ mermaidSyntax }: GraphViewerProps) {
         el.style.maxWidth = 'none';
         el.style.height = 'auto';
       }
+      // Mark nodes that just landed so the eye can follow the graph growing.
+      highlightIds.forEach((id) => {
+        containerRef.current
+          ?.querySelectorAll(`[id*="${CSS.escape(id)}"]`)
+          .forEach((n) => (n as HTMLElement).classList.add('graph-node-new'));
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to render graph');
     } finally {
       setLoading(false);
     }
-  }, [mermaidSyntax, resolved]);
+  }, [mermaidSyntax, resolved, highlightIds]);
 
   useEffect(() => {
+    // Deliberately does NOT reset scale/offset: the graph redraws every time a
+    // document is generated, and yanking the viewport back each time would make
+    // it unusable while watching a run. "Reset view" restores it on demand.
     render();
-    setScale(1);
-    setOffset({ x: 0, y: 0 });
   }, [render]);
 
   // Apply transform whenever scale/offset change (reads fresh values — no stale bug)
@@ -64,6 +73,14 @@ export default function GraphViewer({ mermaidSyntax }: GraphViewerProps) {
       el.style.transition = drag.current ? 'none' : 'transform 0.12s ease-out';
     }
   }, [scale, offset]);
+
+  useEffect(() => {
+    highlightIds.forEach((id) => {
+      containerRef.current
+        ?.querySelectorAll(`[id*="${CSS.escape(id)}"]`)
+        .forEach((n) => (n as HTMLElement).classList.add('graph-node-new'));
+    });
+  }, [highlightIds]);
 
   const zoomIn = () => setScale((s) => Math.min(s + 0.2, 3));
   const zoomOut = () => setScale((s) => Math.max(s - 0.2, 0.4));
