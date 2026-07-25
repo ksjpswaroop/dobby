@@ -148,6 +148,10 @@ app.include_router(runs_router)
 from src.api.search_routes import router as search_router
 app.include_router(search_router)
 
+# Include mind-map routes (visual concept mapping)
+from src.api.mindmap_routes import router as mindmap_router
+app.include_router(mindmap_router)
+
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])
