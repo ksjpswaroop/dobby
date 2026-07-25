@@ -62,3 +62,18 @@ Thumbs.db
 # Tauri
 tauri-app/target/
 tauri-app/dist/
+
+# Node
+node_modules/
+tauri-app/node_modules/
+
+# Office temp lock files
+~$*
+*.tmp
+
+# Local venv (extra)
+.venv/
+
+# Rust build output (all locations)
+**/target/
+tauri-app/src-tauri/target/

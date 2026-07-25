@@ -70,7 +70,7 @@ tauri = [
 ]
 
 [project.scripts]
-dobby = "src.cli:app"
+dobby = "src.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/ksjpswaroop/dobby"
