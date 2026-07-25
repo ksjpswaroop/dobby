@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { mindmapApi } from './api';
 import type { MapTree, MindMap } from './types';
+import type { ProposedTree } from './api';
 
 const UNDO_DEPTH = 50;
 
@@ -39,6 +40,15 @@ interface MindMapState {
 
   undo: () => Promise<void>;
   redo: () => Promise<void>;
+
+  // AI (Phase 2)
+  aiBusy: null | 'generate' | 'expand' | 'regroup';
+  proposal: { proposed: ProposedTree; summary: { current_nodes: number; proposed_nodes: number } } | null;
+  aiGenerate: (projectId: string, topic?: string) => Promise<void>;
+  aiExpand: (nodeId: string) => Promise<void>;
+  aiRegroup: () => Promise<void>;
+  aiApplyRegroup: () => Promise<void>;
+  dismissProposal: () => void;
 }
 
 export const useMindMapStore = create<MindMapState>((set, get) => {
@@ -103,6 +113,8 @@ export const useMindMapStore = create<MindMapState>((set, get) => {
     loading: false,
     saving: false,
     error: null,
+    aiBusy: null,
+    proposal: null,
 
     async loadMaps(projectId) {
       set({ loading: true, error: null });
@@ -256,6 +268,66 @@ export const useMindMapStore = create<MindMapState>((set, get) => {
       } finally {
         set({ saving: false });
       }
+    },
+
+    async aiGenerate(projectId, topic) {
+      set({ aiBusy: 'generate', error: null });
+      try {
+        const r = await mindmapApi.aiGenerate(projectId, topic);
+        await get().loadMaps(projectId);
+        await get().selectMap(r.map_id);
+      } catch (e) {
+        set({ error: e instanceof Error ? e.message : 'AI generation failed' });
+      } finally {
+        set({ aiBusy: null });
+      }
+    },
+
+    async aiExpand(nodeId) {
+      set({ aiBusy: 'expand', error: null });
+      pushUndo();
+      try {
+        await mindmapApi.aiExpand(nodeId);
+        await reload();
+      } catch (e) {
+        set({ error: e instanceof Error ? e.message : 'AI expansion failed' });
+      } finally {
+        set({ aiBusy: null });
+      }
+    },
+
+    async aiRegroup() {
+      const id = get().activeMapId;
+      if (!id) return;
+      set({ aiBusy: 'regroup', error: null });
+      try {
+        // Only proposes — nothing is written until the user accepts.
+        set({ proposal: await mindmapApi.aiRegroup(id) });
+      } catch (e) {
+        set({ error: e instanceof Error ? e.message : 'AI regroup failed' });
+      } finally {
+        set({ aiBusy: null });
+      }
+    },
+
+    async aiApplyRegroup() {
+      const id = get().activeMapId;
+      const proposal = get().proposal;
+      if (!id || !proposal) return;
+      set({ aiBusy: 'regroup', error: null });
+      try {
+        await mindmapApi.aiApplyRegroup(id, proposal.proposed);
+        set({ proposal: null, undoStack: [], redoStack: [] });
+        await reload();
+      } catch (e) {
+        set({ error: e instanceof Error ? e.message : 'Failed to apply' });
+      } finally {
+        set({ aiBusy: null });
+      }
+    },
+
+    dismissProposal() {
+      set({ proposal: null });
     },
 
     async undo() {

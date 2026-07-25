@@ -85,4 +85,35 @@ export const mindmapApi = {
     }),
 
   deleteEdge: (edgeId: string) => req<{ success: boolean }>('DELETE', `/edges/${edgeId}`),
+
+  // --- AI (Phase 2) ---
+  aiGenerate: (projectId: string, topic?: string) =>
+    req<{ map_id: string; title: string; nodes_created: number }>('POST', '/ai/generate', {
+      project_id: projectId,
+      topic: topic || null,
+    }),
+
+  aiExpand: (nodeId: string) =>
+    req<{ nodes_created: number }>('POST', `/ai/expand/${nodeId}`),
+
+  aiRegroup: (mapId: string) =>
+    req<{ proposed: ProposedTree; summary: { current_nodes: number; proposed_nodes: number } }>(
+      'POST',
+      `/ai/regroup/${mapId}`
+    ),
+
+  aiApplyRegroup: (mapId: string, proposed: ProposedTree) =>
+    req<{ nodes_created: number }>('POST', `/ai/regroup/${mapId}/apply`, { proposed }),
 };
+
+export interface ProposedNode {
+  title: string;
+  node_type: string;
+  description: string;
+  children: ProposedNode[];
+}
+
+export interface ProposedTree {
+  title: string;
+  children: ProposedNode[];
+}

@@ -418,6 +418,59 @@ def list_snapshots(db: DatabaseManager, map_id: str, limit: int = 50) -> List[Di
         ]
 
 
+def restore_snapshot(db: DatabaseManager, map_id: str, snapshot_id: str) -> Dict[str, Any]:
+    """Rebuild a map's nodes from a snapshot.
+
+    Unlike replaying field edits, this restores *deleted* nodes too, because the
+    snapshot holds the whole tree. Node ids are preserved so links elsewhere
+    keep resolving.
+    """
+    with db.get_session() as s:
+        snap = s.get(MindMapSnapshot, snapshot_id)
+        if not snap or snap.mind_map_id != map_id:
+            raise MindMapError("Snapshot not found for this map")
+        payload = json.loads(snap.snapshot_json)
+
+    flat: List[Dict[str, Any]] = payload.get("flat") or []
+    if not flat:
+        raise MindMapError("Snapshot contains no nodes")
+
+    # Order parents before children so foreign keys hold on insert.
+    by_id = {n["id"]: n for n in flat}
+    ordered: List[Dict[str, Any]] = []
+    queue = [n for n in flat if not n.get("parent_id") or n["parent_id"] not in by_id]
+    children_of: Dict[Optional[str], List[Dict[str, Any]]] = {}
+    for n in flat:
+        children_of.setdefault(n.get("parent_id"), []).append(n)
+    while queue:
+        cur = queue.pop(0)
+        ordered.append(cur)
+        queue.extend(children_of.get(cur["id"], []))
+
+    with db.get_session() as s:
+        s.query(MindMapEdge).filter(MindMapEdge.mind_map_id == map_id).delete()
+        s.query(MindMapNode).filter(MindMapNode.mind_map_id == map_id).delete()
+        s.flush()
+        for n in ordered:
+            s.add(MindMapNode(
+                id=n["id"], mind_map_id=map_id, project_id=n.get("project_id"),
+                parent_id=n.get("parent_id"), title=n["title"],
+                description=n.get("description", ""), node_type=n.get("node_type", "Idea"),
+                color=n.get("color"), sort_order=n.get("sort_order", 0),
+                extra_metadata=n.get("metadata") or {},
+            ))
+            s.flush()
+        for e in payload.get("edges") or []:
+            s.add(MindMapEdge(
+                id=e.get("id") or str(uuid.uuid4()), mind_map_id=map_id,
+                source_node_id=e["source_node_id"], target_node_id=e["target_node_id"],
+                relation_type=e.get("relation_type", "related"),
+            ))
+        s.commit()
+
+    return {"success": True, "nodes_restored": len(ordered)}
+
+
 def validate_tree(db: DatabaseManager, map_id: str) -> List[Dict[str, str]]:
     """Structural integrity check: orphans, bad parents, cycles."""
     problems: List[Dict[str, str]] = []

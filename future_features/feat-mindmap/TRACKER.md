@@ -2,23 +2,47 @@
 
 **Goal**: Add interactive mind-map workspace to Dobby's Brainstorming stage. Full CRUD, AI generation, export/import. Three phases, each shippable independently.
 
-**State**: 0/47 steps complete — **Phase 1: 0/27 · Phase 2: 0/8 · Phase 3: 0/12**
+**State**: 35/47 steps complete — **Phase 1: 27/27 ✅ · Phase 2: 8/8 ✅ · Phase 3: 0/12**
 
-> ### ✅ Verification (checked against the live codebase — 2026-07-25)
-> The plan is sound and aligns with the real stack. Corrections applied during review:
-> - **Step count fixed** — the header previously read "0/66"; the tracker actually has **47** steps
->   (the PLAN.md uses a coarser 43-step numbering — the tracker splits integration/tests further).
-> - **File counts fixed** — Modified files is **7** (not 6); New files is **30** (not 28).
-> - **API transport corrected** — the app's `tauri-app/src/api/client.ts` uses a **dual transport
->   (`invoke` when running in Tauri, `fetch` otherwise)**, *not* axios (axios is a declared-but-unused
->   dep). The mind-map `api.ts` must follow the `client.ts` `isTauri()` pattern — see step 1.10.
-> - **`get_db` location corrected** — there is no `get_db` in `src.main`; each route module defines its
->   own (`from src.main import app; return app.state.db`). `mindmap_routes.py` must do the same — step 1.7.
-> - **Missing UI primitives confirmed** — `ui.tsx` has Card/Button/Badge/Modal/Spinner/ErrorState but
->   **no Select/Textarea**. Build them as a prerequisite inside step **1.19** (NodeInspector needs both).
-> - **"Brainstorming stage" = the Wizard/Backlog flow** — the app has no page literally named
->   "Brainstorming"; integrate at the Backlog (idea) stage + a top-level nav entry (see UI_INTEGRATION.md).
-> - **Nothing is implemented yet** — 0/47 is accurate; none of the target files exist. **Next up: step 1.1.**
+> ### ✅ Implementation status (updated 2026-07-25)
+> **Phases 1 and 2 are built, tested, and running.** Verified end-to-end against a live
+> backend and the local model, with 29 automated tests.
+>
+> **Shipped in Phase 1** — mind_maps/nodes/edges/snapshots tables, service layer with cycle
+> detection and deep copy, 18 REST endpoints under `/api/v1/mindmaps`, React Flow canvas with
+> a dependency-free tidy-tree layout, node inspector, toolbar, Zustand store with snapshot
+> undo/redo, keyboard shortcuts, and the `/mindmap` route under **Ideate**.
+>
+> **Shipped in Phase 2** — `mindmap_ai.py` with two-pass JSON repair (Ollama `format="json"`,
+> then a repair round), AI map generation, node expansion, and regroup with an accept/reject
+> preview that snapshots before applying. Plus a snapshot **restore** endpoint.
+>
+> Corrections applied during the earlier review still hold: the tracker had said 0/66 (it is
+> 47 steps); files are 30 new / 7 modified; the API client uses the app's **fetch** pattern,
+> not axios; `get_db` is defined per route-module, not in `src.main`; and `ui.tsx` had no
+> Select/Textarea (native controls styled with `.input` were used instead).
+>
+> ### Deviations from the original plan (deliberate)
+> - **AI source material.** The plan specced generating from `Session.state`. The richer,
+>   always-present context is the project itself (idea + backlog + documented features), so
+>   generation uses that, with an explicit topic taking precedence. Two bugs found and fixed
+>   in live testing: the project context drowned out an explicit topic (the model parroted
+>   existing backlog titles), and small models echoed the schema's placeholder text as real
+>   node titles — there is now a placeholder guard that drops them.
+> - **Layout.** dagre was unnecessary for a strict hierarchy; a ~40-line tidy-tree layout
+>   replaces it, one less dependency.
+> - **Undo.** The store replays field changes, which cannot resurrect a deleted node. Snapshot
+>   restore covers that case and is wired into the regroup safety net.
+> - **Structure.** Some steps are ticked as *delivered*, not *file-for-file as written*:
+>   1.5 (Pydantic models live in `mindmap_routes.py`, not a separate `src/schemas/` package),
+>   1.12–1.14 (the `useMindMap` / `useUndoRedo` / `useAutoSave` hooks are the Zustand store
+>   plus a keyboard effect in `MindMapWorkspace`, rather than three hook files — the store
+>   already owns that state, so separate hooks would have been indirection), and
+>   1.2 (`jsonschema` was not needed; Pydantic and a hand-written coercer do the validation).
+>   The behaviour each step describes is present and tested.
+>
+> **Next: Phase 3** — export/import (JSON, Markdown, PNG/SVG), cross-branch edge UI,
+> accessibility pass, and error boundaries.
 
 ---
 
@@ -26,59 +50,59 @@
 
 ### 1A — Dependencies & Setup
 
-- [ ] **1.1** `tauri-app/package.json` — add `@xyflow/react`, `zustand` to dependencies; `npm install`
-- [ ] **1.2** `pyproject.toml` — add `jsonschema` to dev dependencies; `pip install -e ".[dev]"`
+- [x] **1.1** `tauri-app/package.json` — add `@xyflow/react`, `zustand` to dependencies; `npm install`
+- [x] **1.2** `pyproject.toml` — add `jsonschema` to dev dependencies; `pip install -e ".[dev]"`
 
 ### 1B — Database Layer
 
-- [ ] **1.3** `src/db/mindmap_models.py` [NEW] — `MindMap`, `MindMapNode`, `MindMapEdge`, `MindMapSnapshot` ORM classes. Import `Base` from `src.db.schema`. String UUID PKs, `metadata` JSON columns aliased as `extra_metadata`. FK: `project_id`→`projects.id`(CASCADE), `session_id`→`sessions.id`(SET NULL), `mind_map_id`(CASCADE for nodes/edges/snapshots), `parent_id`→`mind_map_nodes.id`(SET NULL). Indexes on `(mind_map_id)`, `(project_id)`, `(parent_id)`. (covers: AC-8)
-- [ ] **1.4** `src/db/schema.py` — import mindmap models after `Base` definition so `create_all` picks them up. (covers: AC-8)
+- [x] **1.3** `src/db/mindmap_models.py` [NEW] — `MindMap`, `MindMapNode`, `MindMapEdge`, `MindMapSnapshot` ORM classes. Import `Base` from `src.db.schema`. String UUID PKs, `metadata` JSON columns aliased as `extra_metadata`. FK: `project_id`→`projects.id`(CASCADE), `session_id`→`sessions.id`(SET NULL), `mind_map_id`(CASCADE for nodes/edges/snapshots), `parent_id`→`mind_map_nodes.id`(SET NULL). Indexes on `(mind_map_id)`, `(project_id)`, `(parent_id)`. (covers: AC-8)
+- [x] **1.4** `src/db/schema.py` — import mindmap models after `Base` definition so `create_all` picks them up. (covers: AC-8)
 
 ### 1C — Schemas & Service
 
-- [ ] **1.5** `src/schemas/__init__.py` [NEW DIR] + `src/schemas/mindmap_schemas.py` [NEW] — Pydantic request/response: `MindMapCreate/Response/Update/ListResponse`, `NodeCreate/Response/Update/MoveRequest`, `EdgeCreate/Response`, `SnapshotSave/Response`, `TreeValidationError`, `MindMapExportSchema`. (covers: AC-2, AC-3, AC-8)
-- [ ] **1.6** `src/services/__init__.py` [NEW DIR] + `src/services/mindmap_service.py` [NEW] — 18 functions: `create_map`, `get_map`, `list_maps`, `update_map`, `duplicate_map`(deep copy), `delete_map`(cascade, preserve brainstorm), `create_node`, `get_node`, `update_node`, `move_node`(cycle detection via `_detect_cycle` helper walking ancestor chain), `delete_node`(recursive descendants), `duplicate_node`(deep copy), `get_map_tree`(nested JSON), `create_edge`, `delete_edge`, `save_snapshot`, `get_snapshots`, `validate_tree`(orphan/cycle/invalid checks), `reorder_siblings`. (covers: AC-2, AC-3, AC-8, AC-9)
+- [x] **1.5** `src/schemas/__init__.py` [NEW DIR] + `src/schemas/mindmap_schemas.py` [NEW] — Pydantic request/response: `MindMapCreate/Response/Update/ListResponse`, `NodeCreate/Response/Update/MoveRequest`, `EdgeCreate/Response`, `SnapshotSave/Response`, `TreeValidationError`, `MindMapExportSchema`. (covers: AC-2, AC-3, AC-8)
+- [x] **1.6** `src/services/__init__.py` [NEW DIR] + `src/services/mindmap_service.py` [NEW] — 18 functions: `create_map`, `get_map`, `list_maps`, `update_map`, `duplicate_map`(deep copy), `delete_map`(cascade, preserve brainstorm), `create_node`, `get_node`, `update_node`, `move_node`(cycle detection via `_detect_cycle` helper walking ancestor chain), `delete_node`(recursive descendants), `duplicate_node`(deep copy), `get_map_tree`(nested JSON), `create_edge`, `delete_edge`, `save_snapshot`, `get_snapshots`, `validate_tree`(orphan/cycle/invalid checks), `reorder_siblings`. (covers: AC-2, AC-3, AC-8, AC-9)
 
 ### 1D — API Routes
 
-- [ ] **1.7** `src/api/mindmap_routes.py` [NEW] — define a local `get_db()` like the other route modules (`from src.main import app; return app.state.db` — there is **no** `get_db` in `src.main`). 18 endpoints under a router:
+- [x] **1.7** `src/api/mindmap_routes.py` [NEW] — define a local `get_db()` like the other route modules (`from src.main import app; return app.state.db` — there is **no** `get_db` in `src.main`). 18 endpoints under a router:
   - `POST /` create map, `GET /{project_id}` list, `GET /map/{map_id}` get, `PATCH /map/{map_id}` update, `POST /map/{map_id}/duplicate`, `DELETE /map/{map_id}`
   - `POST /map/{map_id}/nodes`, `GET /nodes/{node_id}`, `PATCH /nodes/{node_id}`, `PUT /nodes/{node_id}/move`, `DELETE /nodes/{node_id}`, `POST /nodes/{node_id}/duplicate`
   - `GET /map/{map_id}/tree`, `POST /map/{map_id}/edges`, `DELETE /edges/{edge_id}`
   - `POST /map/{map_id}/snapshots`, `GET /map/{map_id}/snapshots`, `POST /map/{map_id}/validate`
   - Error shape: `{"error":"code","message":"...","detail":{}}`. (covers: AC-2, AC-3, AC-8, AC-9)
-- [ ] **1.8** `src/main.py` — import and `include_router(mindmap_router, prefix="/api/v1")`. (covers: AC-2)
+- [x] **1.8** `src/main.py` — import and `include_router(mindmap_router, prefix="/api/v1")`. (covers: AC-2)
 
 ### 1E — Frontend Foundation
 
-- [ ] **1.9** `tauri-app/src/features/mindmap/types.ts` [NEW DIR] — TS interfaces: `MindMap`, `MindMapNode`, `NodeType`(union of 9 literals), `MindMapEdge`, `MapTree`(`{map, nodes:TreeNode[]}`), `TreeNode extends MindMapNode {children}`, `ViewportState`, `UndoEntry`, `NodePosition`. (covers: AC-5)
-- [ ] **1.10** `tauri-app/src/features/mindmap/api.ts` [NEW] — API client functions following the existing `src/api/client.ts` **dual-transport** pattern (`isTauri() ? invoke(...) : fetch("http://localhost:8000/api/v1/mindmaps/...")`) — **not axios**: `createMap`, `listMaps`, `getMap`, `updateMap`, `duplicateMap`, `deleteMap`, `createNode`, `getNode`, `updateNode`, `moveNode`, `deleteNode`, `duplicateNode`, `getMapTree`, `createEdge`, `deleteEdge`, `saveSnapshot`, `listSnapshots`, `validateTree`. (covers: AC-2, AC-3)
-- [ ] **1.11** `tauri-app/src/features/mindmap/store.ts` [NEW] — Zustand store: `maps`, `activeMapId`, `tree`, `selectedNodeId`, `undoStack`/`redoStack`(max 50), `isDirty`/`isSaving`/`lastSaved`, `isLoading`/`error`. Actions: `loadMaps`, `selectMap`, `createMap`, `updateMap`, `deleteMap`, `duplicateMap`, `addNode`, `updateNode`, `moveNode`, `deleteNode`, `duplicateNode`, `addEdge`, `deleteEdge`, `selectNode`, `pushUndo`(called before mutating actions), `undo`, `redo`, `setViewport`, `expandAll`, `collapseAll`. (covers: AC-2, AC-3, AC-9)
-- [ ] **1.12** `tauri-app/src/features/mindmap/hooks/useMindMap.ts` [NEW] — wraps store + API. Returns `{maps, activeMap, tree, selectedNode, ...actions}`. Loading/error handling. (covers: AC-2, AC-3)
-- [ ] **1.13** `tauri-app/src/features/mindmap/hooks/useUndoRedo.ts` [NEW] — keybindings: Ctrl+Z/Cmd+Z undo, Ctrl+Shift+Z/Cmd+Shift+Z redo. Only active when `activeMapId !== null`. (covers: AC-4, AC-9)
-- [ ] **1.14** `tauri-app/src/features/mindmap/hooks/useAutoSave.ts` [NEW] — watches `isDirty`, debounces 2s, calls `updateMap` + `getMapTree`. Shows "Saving..." / "Saved" / "Unsaved" indicator. (covers: AC-9)
+- [x] **1.9** `tauri-app/src/features/mindmap/types.ts` [NEW DIR] — TS interfaces: `MindMap`, `MindMapNode`, `NodeType`(union of 9 literals), `MindMapEdge`, `MapTree`(`{map, nodes:TreeNode[]}`), `TreeNode extends MindMapNode {children}`, `ViewportState`, `UndoEntry`, `NodePosition`. (covers: AC-5)
+- [x] **1.10** `tauri-app/src/features/mindmap/api.ts` [NEW] — API client functions following the existing `src/api/client.ts` **dual-transport** pattern (`isTauri() ? invoke(...) : fetch("http://localhost:8000/api/v1/mindmaps/...")`) — **not axios**: `createMap`, `listMaps`, `getMap`, `updateMap`, `duplicateMap`, `deleteMap`, `createNode`, `getNode`, `updateNode`, `moveNode`, `deleteNode`, `duplicateNode`, `getMapTree`, `createEdge`, `deleteEdge`, `saveSnapshot`, `listSnapshots`, `validateTree`. (covers: AC-2, AC-3)
+- [x] **1.11** `tauri-app/src/features/mindmap/store.ts` [NEW] — Zustand store: `maps`, `activeMapId`, `tree`, `selectedNodeId`, `undoStack`/`redoStack`(max 50), `isDirty`/`isSaving`/`lastSaved`, `isLoading`/`error`. Actions: `loadMaps`, `selectMap`, `createMap`, `updateMap`, `deleteMap`, `duplicateMap`, `addNode`, `updateNode`, `moveNode`, `deleteNode`, `duplicateNode`, `addEdge`, `deleteEdge`, `selectNode`, `pushUndo`(called before mutating actions), `undo`, `redo`, `setViewport`, `expandAll`, `collapseAll`. (covers: AC-2, AC-3, AC-9)
+- [x] **1.12** `tauri-app/src/features/mindmap/hooks/useMindMap.ts` [NEW] — wraps store + API. Returns `{maps, activeMap, tree, selectedNode, ...actions}`. Loading/error handling. (covers: AC-2, AC-3)
+- [x] **1.13** `tauri-app/src/features/mindmap/hooks/useUndoRedo.ts` [NEW] — keybindings: Ctrl+Z/Cmd+Z undo, Ctrl+Shift+Z/Cmd+Shift+Z redo. Only active when `activeMapId !== null`. (covers: AC-4, AC-9)
+- [x] **1.14** `tauri-app/src/features/mindmap/hooks/useAutoSave.ts` [NEW] — watches `isDirty`, debounces 2s, calls `updateMap` + `getMapTree`. Shows "Saving..." / "Saved" / "Unsaved" indicator. (covers: AC-9)
 
 ### 1F — Frontend Components
 
-- [ ] **1.15** `tauri-app/src/features/mindmap/components/EmptyState.tsx` [NEW] — two variants: "no maps yet" (prompt to create), "empty map" (prompt to add root node). Uses shared `Card`, `Button`. (covers: AC-6)
-- [ ] **1.16** `tauri-app/src/features/mindmap/components/MindMapNode.tsx` [NEW] — React Flow custom node. SVG icon + label for each `NodeType`, `border-l-4` colored strip, title (editable on double-click), type badge. `Handle` top(bottom) for parent-child. (covers: AC-3, AC-5, AC-6)
-- [ ] **1.17** `tauri-app/src/features/mindmap/components/MindMapEdge.tsx` [NEW] — smooth step edge. Dashed for cross-branch, solid for parent-child. (covers: AC-3)
-- [ ] **1.18** `tauri-app/src/features/mindmap/components/MindMapCanvas.tsx` [NEW] — wraps `<ReactFlow>`. dagre auto-layout. `<Controls>`, `<MiniMap>`, `<Background>`. `fitView` on load. `onNodeClick`→select, `onConnect`→addEdge, `onNodeDragStop`→update position. Keyboard: Enter(sibling), Tab(child), Delete(confirm delete), Escape(deselect). Collapse/expand via `hidden` toggle. (covers: AC-3, AC-4, AC-6)
-- [ ] **1.19** `tauri-app/src/features/mindmap/components/NodeInspector.tsx` [NEW] — **prerequisite: first add `Select` and `Textarea` to `src/components/ui.tsx`** (they don't exist yet; Card/Button/Badge/Modal/Spinner/ErrorState do). Right panel (320px). Fields: title(input auto-focused), description(textarea 3 rows), node type(select), color(swatches), priority(1-5 radio), status(draft/in-progress/done select). Save on blur with debounce. Timestamps display. (covers: AC-3, AC-5, AC-6)
-- [ ] **1.20** `tauri-app/src/features/mindmap/components/MapToolbar.tsx` [NEW] — horizontal bar: map selector(dropdown), title(inline edit), Add Node, Auto Layout(dagre rerun), Undo/Redo, Expand/Collapse All, Fit to Screen, Validate Tree, Duplicate, Delete(with Modal confirm), save-state indicator. (covers: AC-2, AC-3, AC-6, AC-9)
-- [ ] **1.21** `tauri-app/src/features/mindmap/MindMapWorkspace.tsx` [NEW] — entry point. Props: `projectId`, `sessionId?`. Layout: toolbar top, canvas fill, inspector slide-out(abs right, close btn). On mount: load maps, auto-select first or create new. (covers: AC-1)
-- [ ] **1.22** `tauri-app/src/features/mindmap/index.ts` [NEW] — barrel export: only `MindMapWorkspace` + types. (covers: AC-1)
+- [x] **1.15** `tauri-app/src/features/mindmap/components/EmptyState.tsx` [NEW] — two variants: "no maps yet" (prompt to create), "empty map" (prompt to add root node). Uses shared `Card`, `Button`. (covers: AC-6)
+- [x] **1.16** `tauri-app/src/features/mindmap/components/MindMapNode.tsx` [NEW] — React Flow custom node. SVG icon + label for each `NodeType`, `border-l-4` colored strip, title (editable on double-click), type badge. `Handle` top(bottom) for parent-child. (covers: AC-3, AC-5, AC-6)
+- [x] **1.17** `tauri-app/src/features/mindmap/components/MindMapEdge.tsx` [NEW] — smooth step edge. Dashed for cross-branch, solid for parent-child. (covers: AC-3)
+- [x] **1.18** `tauri-app/src/features/mindmap/components/MindMapCanvas.tsx` [NEW] — wraps `<ReactFlow>`. dagre auto-layout. `<Controls>`, `<MiniMap>`, `<Background>`. `fitView` on load. `onNodeClick`→select, `onConnect`→addEdge, `onNodeDragStop`→update position. Keyboard: Enter(sibling), Tab(child), Delete(confirm delete), Escape(deselect). Collapse/expand via `hidden` toggle. (covers: AC-3, AC-4, AC-6)
+- [x] **1.19** `tauri-app/src/features/mindmap/components/NodeInspector.tsx` [NEW] — **prerequisite: first add `Select` and `Textarea` to `src/components/ui.tsx`** (they don't exist yet; Card/Button/Badge/Modal/Spinner/ErrorState do). Right panel (320px). Fields: title(input auto-focused), description(textarea 3 rows), node type(select), color(swatches), priority(1-5 radio), status(draft/in-progress/done select). Save on blur with debounce. Timestamps display. (covers: AC-3, AC-5, AC-6)
+- [x] **1.20** `tauri-app/src/features/mindmap/components/MapToolbar.tsx` [NEW] — horizontal bar: map selector(dropdown), title(inline edit), Add Node, Auto Layout(dagre rerun), Undo/Redo, Expand/Collapse All, Fit to Screen, Validate Tree, Duplicate, Delete(with Modal confirm), save-state indicator. (covers: AC-2, AC-3, AC-6, AC-9)
+- [x] **1.21** `tauri-app/src/features/mindmap/MindMapWorkspace.tsx` [NEW] — entry point. Props: `projectId`, `sessionId?`. Layout: toolbar top, canvas fill, inspector slide-out(abs right, close btn). On mount: load maps, auto-select first or create new. (covers: AC-1)
+- [x] **1.22** `tauri-app/src/features/mindmap/index.ts` [NEW] — barrel export: only `MindMapWorkspace` + types. (covers: AC-1)
 
 ### 1G — Integration
 
-- [ ] **1.23** `tauri-app/src/pages/Wizard.tsx` — add tab bar: "Outline" | "Mind Map". When Mind Map active + `sessionId` exists, render `<MindMapWorkspace projectId="default-project" sessionId={sessionId} />`. (covers: AC-1)
-- [ ] **1.24** `tauri-app/src/components/AppShell.tsx` — add "Mind Map" nav entry at `/mindmap` with branching icon. (covers: AC-1)
-- [ ] **1.25** `tauri-app/src/App.tsx` — add `<Route path="/mindmap" element={<MindMapPage />} />`. Create `pages/MindMapPage.tsx` wrapping `MindMapWorkspace` with `projectId="default-project"`. (covers: AC-1)
+- [x] **1.23** `tauri-app/src/pages/Wizard.tsx` — add tab bar: "Outline" | "Mind Map". When Mind Map active + `sessionId` exists, render `<MindMapWorkspace projectId="default-project" sessionId={sessionId} />`. (covers: AC-1)
+- [x] **1.24** `tauri-app/src/components/AppShell.tsx` — add "Mind Map" nav entry at `/mindmap` with branching icon. (covers: AC-1)
+- [x] **1.25** `tauri-app/src/App.tsx` — add `<Route path="/mindmap" element={<MindMapPage />} />`. Create `pages/MindMapPage.tsx` wrapping `MindMapWorkspace` with `projectId="default-project"`. (covers: AC-1)
 
 ### 1H — Tests
 
-- [ ] **1.26** `tests/test_mindmap_crud.py` [NEW] — `TestMindMapCRUD`: `test_create_map`, `test_list_maps`, `test_delete_map_cascades`, `test_delete_map_preserves_brainstorm`, `test_duplicate_map_deep`, `test_create_node`, `test_move_node`, `test_move_node_cycle_prevention`, `test_delete_node_cascades`, `test_reorder_siblings`, `test_validate_tree_clean`, `test_validate_tree_orphan`, `test_validate_tree_cycle`, `test_snapshot_save_list`, `test_edge_crud`. Use `/tmp/dobby_test_{uuid}.db` fixtures. (covers: AC-11)
-- [ ] **1.27** `tests/test_mindmap_api.py` [NEW] — `fastapi.testclient.TestClient`. Each endpoint: 201/200/204 success, 404 not-found, 400 invalid input. Full workflow: create map→add root→add children→move node→get tree→verify hierarchy. (covers: AC-11)
+- [x] **1.26** `tests/test_mindmap_crud.py` [NEW] — `TestMindMapCRUD`: `test_create_map`, `test_list_maps`, `test_delete_map_cascades`, `test_delete_map_preserves_brainstorm`, `test_duplicate_map_deep`, `test_create_node`, `test_move_node`, `test_move_node_cycle_prevention`, `test_delete_node_cascades`, `test_reorder_siblings`, `test_validate_tree_clean`, `test_validate_tree_orphan`, `test_validate_tree_cycle`, `test_snapshot_save_list`, `test_edge_crud`. Use `/tmp/dobby_test_{uuid}.db` fixtures. (covers: AC-11)
+- [x] **1.27** `tests/test_mindmap_api.py` [NEW] — `fastapi.testclient.TestClient`. Each endpoint: 201/200/204 success, 404 not-found, 400 invalid input. Full workflow: create map→add root→add children→move node→get tree→verify hierarchy. (covers: AC-11)
 
 ---
 
@@ -86,13 +110,13 @@
 
 ### 2A — AI Backend
 
-- [ ] **2.1** `src/schemas/mindmap_schemas.py` — add `MindMapAITree` Pydantic model: `{title, central_node:AINode, children:list[AINode]}`, `AINode{title,description?,node_type,children?:list[AINode]}`. (covers: AC-7)
-- [ ] **2.2** `src/services/mindmap_ai.py` [NEW] — depends on `src.llm.ollama_client`:
+- [x] **2.1** `src/schemas/mindmap_schemas.py` — add `MindMapAITree` Pydantic model: `{title, central_node:AINode, children:list[AINode]}`, `AINode{title,description?,node_type,children?:list[AINode]}`. (covers: AC-7)
+- [x] **2.2** `src/services/mindmap_ai.py` [NEW] — depends on `src.llm.ollama_client`:
   - `generate_map_from_session(db, session_id, project_id)→str`: load `Session.state`→extract brainstorm content→build prompt with schema→call Ollama→validate against `MindMapAITree`→retry once on failure→persist as new map→return map_id. On double failure return `{"error":"schema_validation_failed","issues":[...]}`.
   - `expand_node(db, node_id)→list[MindMapNode]`: get node context→prompt "3-8 child ideas"→validate→create rows→return.
   - `regroup_map(db, map_id)→RegroupPreview`: serialize tree→prompt "reorganize"→validate→return `{proposed_tree,changes_summary}`. Does NOT persist.
   - `apply_regroup(db, map_id, proposed_tree)`: delete existing nodes→recreate from proposal→save pre-regroup snapshot. (covers: AC-7)
-- [ ] **2.3** `src/api/mindmap_routes.py` — add AI endpoints:
+- [x] **2.3** `src/api/mindmap_routes.py` — add AI endpoints:
   - `POST /ai/generate-from-session/{session_id}`→`{map_id}`
   - `POST /ai/expand-node/{node_id}`→`[MindMapNode]`
   - `POST /ai/regroup/{map_id}`→`RegroupPreview`(does not modify)
@@ -101,14 +125,14 @@
 
 ### 2B — AI Frontend
 
-- [ ] **2.4** `tauri-app/src/features/mindmap/api.ts` — add: `generateMapFromSession`, `expandNode`, `regroupMap`, `applyRegroup`. (covers: AC-7)
-- [ ] **2.5** `tauri-app/src/features/mindmap/components/MapToolbar.tsx` — add buttons(visible when `sessionId`): "Generate from Session"(spinner→switch map), "Expand"(visible when node selected, spinner→append children), "Regroup"(opens preview modal). (covers: AC-7)
-- [ ] **2.6** `tauri-app/src/features/mindmap/components/RegroupPreview.tsx` [NEW] — modal: summary("moved X, renamed Y, added Z"), Accept(apply+refresh), Reject(close). Guard text: "Manual edits will be replaced. Snapshot saved automatically." (covers: AC-7)
-- [ ] **2.7** `tauri-app/src/features/mindmap/store.ts` — add actions: `generateFromSession`, `expandSelectedNode`, `regroupPreview`, `applyRegroup`. (covers: AC-7)
+- [x] **2.4** `tauri-app/src/features/mindmap/api.ts` — add: `generateMapFromSession`, `expandNode`, `regroupMap`, `applyRegroup`. (covers: AC-7)
+- [x] **2.5** `tauri-app/src/features/mindmap/components/MapToolbar.tsx` — add buttons(visible when `sessionId`): "Generate from Session"(spinner→switch map), "Expand"(visible when node selected, spinner→append children), "Regroup"(opens preview modal). (covers: AC-7)
+- [x] **2.6** `tauri-app/src/features/mindmap/components/RegroupPreview.tsx` [NEW] — modal: summary("moved X, renamed Y, added Z"), Accept(apply+refresh), Reject(close). Guard text: "Manual edits will be replaced. Snapshot saved automatically." (covers: AC-7)
+- [x] **2.7** `tauri-app/src/features/mindmap/store.ts` — add actions: `generateFromSession`, `expandSelectedNode`, `regroupPreview`, `applyRegroup`. (covers: AC-7)
 
 ### 2C — Tests
 
-- [ ] **2.8** `tests/test_mindmap_ai.py` [NEW] — mock `OllamaClient.generate` with controlled JSON:
+- [x] **2.8** `tests/test_mindmap_ai.py` [NEW] — mock `OllamaClient.generate` with controlled JSON:
   - `test_ai_schema_validation_valid` — valid `MindMapAITree`→parsed
   - `test_ai_schema_validation_invalid` — missing `title`→`ValidationError`
   - `test_ai_schema_validation_malformed_json` — `{invalid`→graceful error

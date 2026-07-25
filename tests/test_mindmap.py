@@ -223,3 +223,123 @@ class TestMindMapAPI:
     def test_node_types_exposed(self, client):
         types = client.get("/api/v1/mindmaps/types").json()["node_types"]
         assert "Idea" in types and len(types) == 9
+
+
+# ---------------------------------------------------------------------------
+# AI (Phase 2) — the model is mocked so these stay deterministic
+# ---------------------------------------------------------------------------
+class TestMindMapAI:
+    def test_extract_json_handles_fences_and_preamble(self):
+        from src.services import mindmap_ai as ai
+
+        assert ai._extract_json('```json\n{"a": 1}\n```') == {"a": 1}
+        assert ai._extract_json('Sure! Here you go:\n{"a": 2}\nHope that helps') == {"a": 2}
+        assert ai._extract_json("not json at all") is None
+
+    def test_placeholder_titles_are_rejected(self):
+        """A small model echoing the schema must not become real nodes."""
+        from src.services import mindmap_ai as ai
+
+        assert ai._is_placeholder("Theme")
+        assert ai._is_placeholder("Specific idea")
+        assert ai._is_placeholder("<name of a theme>")
+        assert not ai._is_placeholder("Offline sync for mobile")
+
+    def test_coerce_drops_junk_and_clamps(self):
+        from src.services import mindmap_ai as ai
+
+        out = ai._coerce_tree([
+            {"title": "Real theme", "node_type": "Feature",
+             "children": [{"title": "Theme"}, {"title": "Real child"}]},
+            {"title": ""},                       # empty -> dropped
+            "not-a-dict",                        # wrong type -> dropped
+            {"title": "Bad type", "node_type": "Nonsense"},
+        ])
+        assert [n["title"] for n in out] == ["Real theme", "Bad type"]
+        # the echoed placeholder child is gone, the real one survives
+        assert [c["title"] for c in out[0]["children"]] == ["Real child"]
+        # an unknown node_type falls back to a valid one
+        assert out[1]["node_type"] == "Idea"
+
+    def test_generate_persists_the_returned_tree(self, db, monkeypatch):
+        import asyncio
+
+        from src.services import mindmap_ai as ai
+
+        async def fake_json(prompt, what):
+            return {
+                "title": "Habit app",
+                "children": [
+                    {"title": "Onboarding", "node_type": "Feature",
+                     "children": [{"title": "Streak setup", "node_type": "Idea"}]},
+                ],
+            }, None
+
+        monkeypatch.setattr(ai, "_generate_json", fake_json)
+        result = asyncio.run(ai.generate_map(db, PROJECT, "A habit app"))
+
+        assert result["success"] is True
+        assert result["nodes_created"] == 2
+        tree = svc.get_map_tree(db, result["map_id"])
+        assert tree["nodes"][0]["children"][0]["title"] == "Onboarding"
+
+    def test_generate_surfaces_model_failure(self, db, monkeypatch):
+        import asyncio
+
+        from src.services import mindmap_ai as ai
+
+        async def fake_json(prompt, what):
+            return None, "bad json"
+
+        monkeypatch.setattr(ai, "_generate_json", fake_json)
+        result = asyncio.run(ai.generate_map(db, PROJECT, "x"))
+        assert result["success"] is False and result["error"]
+
+    def test_regroup_proposal_does_not_touch_the_map(self, db, a_map, monkeypatch):
+        import asyncio
+
+        from src.services import mindmap_ai as ai
+
+        svc.create_node(db, a_map["id"], "Original", a_map["root_node_id"])
+        before = len(svc.get_map_tree(db, a_map["id"])["flat"])
+
+        async def fake_json(prompt, what):
+            return {"title": "New", "children": [{"title": "Regrouped", "node_type": "Idea"}]}, None
+
+        monkeypatch.setattr(ai, "_generate_json", fake_json)
+        result = asyncio.run(ai.regroup_map(db, a_map["id"]))
+
+        assert result["success"] is True
+        assert result["proposed"]["children"][0]["title"] == "Regrouped"
+        assert len(svc.get_map_tree(db, a_map["id"])["flat"]) == before, "preview must not persist"
+
+    def test_apply_regroup_snapshots_then_replaces(self, db, a_map):
+        from src.services import mindmap_ai as ai
+
+        svc.create_node(db, a_map["id"], "Original", a_map["root_node_id"])
+        proposed = {"title": "Reorganized",
+                    "children": [{"title": "New theme", "node_type": "Idea",
+                                  "description": "", "children": []}]}
+
+        result = ai.apply_regroup(db, a_map["id"], proposed)
+        assert result["success"] is True
+
+        tree = svc.get_map_tree(db, a_map["id"])
+        titles = [n["title"] for n in tree["flat"]]
+        assert "New theme" in titles and "Original" not in titles
+
+        snaps = svc.list_snapshots(db, a_map["id"])
+        assert snaps and snaps[0]["label"] == "before AI regroup"
+
+    def test_restore_snapshot_brings_deleted_nodes_back(self, db, a_map):
+        """Snapshot restore is what lets undo recover a deletion."""
+        child = svc.create_node(db, a_map["id"], "Keep me", a_map["root_node_id"])
+        snapshot_id = svc.save_snapshot(db, a_map["id"],
+                                        svc.get_map_tree(db, a_map["id"]), "before delete")
+
+        svc.delete_node(db, child["id"])
+        assert len(svc.get_map_tree(db, a_map["id"])["flat"]) == 1
+
+        svc.restore_snapshot(db, a_map["id"], snapshot_id)
+        titles = [n["title"] for n in svc.get_map_tree(db, a_map["id"])["flat"]]
+        assert "Keep me" in titles, "restore must resurrect deleted nodes"

@@ -210,3 +210,76 @@ async def save_snapshot(map_id: str, req: SnapshotSave, db: DatabaseManager = De
 @router.get("/map/{map_id}/snapshots")
 async def list_snapshots(map_id: str, db: DatabaseManager = Depends(get_db)):
     return {"snapshots": svc.list_snapshots(db, map_id)}
+
+
+@router.post("/map/{map_id}/restore/{snapshot_id}")
+async def restore_snapshot(map_id: str, snapshot_id: str, db: DatabaseManager = Depends(get_db)):
+    """Rebuild a map from a snapshot — this is what makes undo able to bring
+    deleted nodes back, which a field-by-field replay cannot do."""
+    try:
+        return svc.restore_snapshot(db, map_id, snapshot_id)
+    except svc.MindMapError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# AI (Phase 2)
+# ---------------------------------------------------------------------------
+class GenerateRequest(BaseModel):
+    project_id: str
+    topic: Optional[str] = None
+
+
+class ApplyRegroup(BaseModel):
+    proposed: Dict[str, Any]
+
+
+@router.post("/ai/generate")
+async def ai_generate(req: GenerateRequest, db: DatabaseManager = Depends(get_db)):
+    from src.services import mindmap_ai
+
+    try:
+        result = await mindmap_ai.generate_map(db, req.project_id, req.topic)
+    except mindmap_ai.AIUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    if not result.get("success"):
+        raise HTTPException(status_code=422, detail=result.get("error", "Generation failed"))
+    return result
+
+
+@router.post("/ai/expand/{node_id}")
+async def ai_expand(node_id: str, db: DatabaseManager = Depends(get_db)):
+    from src.services import mindmap_ai
+
+    try:
+        result = await mindmap_ai.expand_node(db, node_id)
+    except mindmap_ai.AIUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    if not result.get("success"):
+        raise HTTPException(status_code=422, detail=result.get("error", "Expansion failed"))
+    return result
+
+
+@router.post("/ai/regroup/{map_id}")
+async def ai_regroup(map_id: str, db: DatabaseManager = Depends(get_db)):
+    """Propose a reorganization. Persists nothing."""
+    from src.services import mindmap_ai
+
+    try:
+        result = await mindmap_ai.regroup_map(db, map_id)
+    except mindmap_ai.AIUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    if not result.get("success"):
+        raise HTTPException(status_code=422, detail=result.get("error", "Regroup failed"))
+    return result
+
+
+@router.post("/ai/regroup/{map_id}/apply")
+async def ai_regroup_apply(map_id: str, req: ApplyRegroup,
+                           db: DatabaseManager = Depends(get_db)):
+    from src.services import mindmap_ai
+
+    result = mindmap_ai.apply_regroup(db, map_id, req.proposed)
+    if not result.get("success"):
+        raise HTTPException(status_code=404, detail=result.get("error", "Apply failed"))
+    return result

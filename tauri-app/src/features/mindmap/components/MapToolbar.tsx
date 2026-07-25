@@ -3,7 +3,7 @@ import { useMindMapStore } from '../store';
 import { Button } from '../../../components/ui';
 import {
   IconPlus, IconTrash, IconLayers, IconRefresh, IconCheck,
-  IconZoomIn, IconZoomOut, IconArrowLeft,
+  IconZoomIn, IconZoomOut, IconArrowLeft, IconSparkles, IconFlow,
 } from '../../../lib/icons';
 
 export function MapToolbar({ projectId }: { projectId: string }) {
@@ -25,6 +25,11 @@ export function MapToolbar({ projectId }: { projectId: string }) {
   const collapseAll = useMindMapStore((s) => s.collapseAll);
   const undo = useMindMapStore((s) => s.undo);
   const redo = useMindMapStore((s) => s.redo);
+
+  const aiBusy = useMindMapStore((s) => s.aiBusy);
+  const aiGenerate = useMindMapStore((s) => s.aiGenerate);
+  const aiExpand = useMindMapStore((s) => s.aiExpand);
+  const aiRegroup = useMindMapStore((s) => s.aiRegroup);
 
   const [title, setTitle] = useState('');
 
@@ -82,11 +87,46 @@ export function MapToolbar({ projectId }: { projectId: string }) {
 
       <Button variant="ghost" icon={<IconZoomOut size={15} />} onClick={collapseAll}
               title="Collapse all branches">
-        Collapse
+        Collapse all
       </Button>
       <Button variant="ghost" icon={<IconZoomIn size={15} />} onClick={expandAll}
               title="Expand all branches">
-        Expand
+        Expand all
+      </Button>
+
+      <span className="mx-1 h-5 w-px bg-line" />
+
+      {/* AI actions */}
+      <Button
+        variant="secondary"
+        icon={<IconSparkles size={15} />}
+        loading={aiBusy === 'generate'}
+        onClick={() => {
+          const topic = window.prompt('What should this mind map be about?');
+          if (topic?.trim()) aiGenerate(projectId, topic.trim());
+        }}
+        title="Generate a whole new map with AI"
+      >
+        AI map
+      </Button>
+      <Button
+        variant="ghost"
+        icon={<IconSparkles size={15} />}
+        loading={aiBusy === 'expand'}
+        disabled={!selectedNodeId}
+        onClick={() => selectedNodeId && aiExpand(selectedNodeId)}
+        title={selectedNodeId ? 'Add AI-generated children to the selected node' : 'Select a node first'}
+      >
+        AI expand
+      </Button>
+      <Button
+        variant="ghost"
+        icon={<IconFlow size={15} />}
+        loading={aiBusy === 'regroup'}
+        onClick={() => aiRegroup()}
+        title="Propose a reorganization (preview before applying)"
+      >
+        AI regroup
       </Button>
 
       <span className="mx-1 h-5 w-px bg-line" />

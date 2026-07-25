@@ -3,8 +3,9 @@ import { useMindMapStore } from './store';
 import { MindMapCanvas } from './components/MindMapCanvas';
 import { NodeInspector } from './components/NodeInspector';
 import { MapToolbar } from './components/MapToolbar';
+import { RegroupPreview } from './components/RegroupPreview';
 import { Button, LoadingState, EmptyState } from '../../components/ui';
-import { IconMindmap, IconPlus } from '../../lib/icons';
+import { IconMindmap, IconPlus, IconSparkles } from '../../lib/icons';
 
 /**
  * The mind-map sub-application. The only component the host app mounts.
@@ -20,6 +21,7 @@ export function MindMapWorkspace({ projectId }: { projectId: string; sessionId?:
   const createMap = useMindMapStore((s) => s.createMap);
   const addNode = useMindMapStore((s) => s.addNode);
   const deleteNode = useMindMapStore((s) => s.deleteNode);
+  const aiGenerate = useMindMapStore((s) => s.aiGenerate);
   const undo = useMindMapStore((s) => s.undo);
   const redo = useMindMapStore((s) => s.redo);
 
@@ -66,13 +68,25 @@ export function MindMapWorkspace({ projectId }: { projectId: string; sessionId?:
         title="No mind maps yet"
         description="Create a map to organize this project's ideas visually — drag to re-parent, collapse branches, and build out the tree."
         action={
-          <Button
-            variant="primary"
-            icon={<IconPlus size={16} />}
-            onClick={() => createMap(projectId, 'Untitled map')}
-          >
-            Create a mind map
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="primary"
+              icon={<IconPlus size={16} />}
+              onClick={() => createMap(projectId, 'Untitled map')}
+            >
+              Create a mind map
+            </Button>
+            <Button
+              variant="secondary"
+              icon={<IconSparkles size={16} />}
+              onClick={() => {
+                const topic = window.prompt('What should this mind map be about?');
+                if (topic?.trim()) aiGenerate(projectId, topic.trim());
+              }}
+            >
+              Generate with AI
+            </Button>
+          </div>
         }
       />
     );
@@ -105,6 +119,7 @@ export function MindMapWorkspace({ projectId }: { projectId: string; sessionId?:
         )}
         <NodeInspector />
       </div>
+      <RegroupPreview />
     </div>
   );
 }

@@ -348,6 +348,12 @@ class OllamaClient:
                 "temperature": temperature,
             },
         }
+
+        # Ollama's structured-output mode: format="json" constrains decoding to
+        # valid JSON, which materially improves schema compliance on small
+        # local models. Opt-in so plain prose generation is unaffected.
+        if kwargs.get("format"):
+            payload["format"] = kwargs["format"]
         
         # Retry logic with exponential backoff
         last_error = None
