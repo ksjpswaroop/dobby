@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/cn';
-import { ALL_ITEMS } from '../lib/nav';
-import { NAV_GROUPS } from '../lib/nav';
+import { ALL_ITEMS, NAV_SECTIONS } from '../lib/nav';
 import { IconSearch } from '../lib/icons';
 
 /** Global ⌘K / Ctrl-K command palette: jump to any surface, live or planned. */
@@ -15,7 +14,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   // route -> category, for labels
   const catOf = useMemo(() => {
     const m = new Map<string, string>();
-    NAV_GROUPS.forEach((g) => g.items.forEach((i) => m.set(i.route, g.category)));
+    NAV_SECTIONS.forEach((s) => s.items.forEach((i) => m.set(i.route, s.label)));
     return m;
   }, []);
 

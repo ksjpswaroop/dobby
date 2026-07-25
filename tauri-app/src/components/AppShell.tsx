@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '../lib/cn';
 import { useTheme, type Theme } from '../lib/theme';
 import { useProject } from '../lib/project';
-import { NAV_GROUPS } from '../lib/nav';
+import { NAV_SECTIONS, sectionForRoute } from '../lib/nav';
 import { CommandPalette } from './CommandPalette';
 import api, { type SystemInfo, type ProjectInfo } from '../api/client';
 import {
@@ -208,9 +208,53 @@ function CommandTrigger({ onOpen }: { onOpen: () => void }) {
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/* Section tabs — the "app-in-app" strip under the header                      */
+/* -------------------------------------------------------------------------- */
+function SectionTabs() {
+  const { pathname } = useLocation();
+  const section = sectionForRoute(pathname);
+  // A single-tab section is just a page; don't show a strip for it.
+  if (!section || section.items.length < 2) return null;
+
+  return (
+    <div className="flex h-11 shrink-0 items-center gap-1 border-b border-line bg-surface/40 px-6">
+      {section.items.map((i) => (
+        <NavLink
+          key={i.route}
+          to={i.route}
+          end={i.route === '/'}
+          className={({ isActive }) =>
+            cn(
+              'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors',
+              isActive
+                ? 'bg-brand/10 text-brand'
+                : 'text-ink-muted hover:bg-surface2 hover:text-ink'
+            )
+          }
+        >
+          {i.label}
+          {i.status === 'planned' && (
+            <span className="rounded bg-surface2 px-1 py-px text-[9px] uppercase tracking-wide text-ink-muted">
+              soon
+            </span>
+          )}
+        </NavLink>
+      ))}
+    </div>
+  );
+}
+
 export default function AppShell({ children }: { children: ReactNode }) {
   const version = '2.0';
+  const { pathname } = useLocation();
   const [paletteOpen, setPaletteOpen] = useState(false);
+
+  // A sidebar verb is active when the current route is one of its sub-surfaces.
+  const isSectionActive = (
+    items: { route: string }[],
+    sectionRoute: string
+  ) => items.some((i) => i.route === pathname) || pathname === sectionRoute;
 
   // Global ⌘K / Ctrl-K to open the command center.
   useEffect(() => {
@@ -236,31 +280,21 @@ export default function AppShell({ children }: { children: ReactNode }) {
           </span>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-4 overflow-y-auto p-3">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.category}>
-              <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-                {group.category}
-              </div>
-              <div className="flex flex-col gap-0.5">
-                {group.items.map(({ label, route, icon: Icon, status, end }) => (
-                  <NavLink
-                    key={route}
-                    to={route}
-                    end={end}
-                    className={({ isActive }) => cn('nav-link', isActive && 'nav-link-active')}
-                  >
-                    <Icon size={17} />
-                    <span className="flex-1">{label}</span>
-                    {status === 'planned' && (
-                      <span className="rounded-md bg-surface2 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-ink-muted">
-                        soon
-                      </span>
-                    )}
-                  </NavLink>
-                ))}
-              </div>
-            </div>
+        {/* Five verbs, not fifteen links. Sub-surfaces live in the tab strip. */}
+        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
+          {NAV_SECTIONS.map(({ label, route, icon: Icon, hint, items }) => (
+            <NavLink
+              key={label}
+              to={route}
+              end={route === '/'}
+              title={hint}
+              className={() =>
+                cn('nav-link', isSectionActive(items, route) && 'nav-link-active')
+              }
+            >
+              <Icon size={17} />
+              <span className="flex-1">{label}</span>
+            </NavLink>
           ))}
         </nav>
 
@@ -281,6 +315,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
             <ThemeToggle />
           </div>
         </header>
+
+        <SectionTabs />
 
         <main className="flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-6xl animate-fade-in px-6 py-8">{children}</div>

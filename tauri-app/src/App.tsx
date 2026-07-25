@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import AppShell from './components/AppShell';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
@@ -31,6 +31,10 @@ function App() {
         <Route path="/bulk" element={<Bulk />} />
         <Route path="/graph" element={<GraphPage />} />
         <Route path="/settings" element={<Settings />} />
+        {/* Section landings redirect to their first tab. */}
+        <Route path="/create" element={<Navigate to="/wizard" replace />} />
+        <Route path="/automate" element={<Navigate to="/skills" replace />} />
+        <Route path="/develop" element={<Navigate to="/terminal" replace />} />
         {PLANNED_ROUTES.map((r) => (
           <Route key={r} path={r} element={<Planned />} />
         ))}
