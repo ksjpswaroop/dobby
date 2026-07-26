@@ -4,7 +4,7 @@ import {
   IconAudio, IconYouTube, IconNotes,
   IconCommand, IconSkill, IconFlow,
   IconTerminal, IconLogs, IconControl, IconSearch, IconSettings,
-  IconMarket, IconSparkles, IconResearch,
+  IconMarket, IconSparkles, IconResearch, IconServer,
 } from './icons';
 
 export type NavStatus = 'live' | 'planned';
@@ -91,6 +91,7 @@ export const NAV_SECTIONS: NavSection[] = [
     // as an empty section, however much works further along the strip.
     items: [
       { label: 'Inbox', route: '/inbox', icon: IconControl, status: 'live' },
+      { label: 'Connections', route: '/connections', icon: IconServer, status: 'live' },
       { label: 'Automations', route: '/automations', icon: IconFlow, status: 'live' },
       { label: 'Commands', route: '/command', icon: IconCommand, status: 'live' },
       { label: 'Skills', route: '/skills', icon: IconSkill, status: 'planned', phase: 'P3',

@@ -7,6 +7,7 @@ import Research from './pages/Research';
 import Automations from './pages/Automations';
 import Inbox from './pages/Inbox';
 import TerminalPage from './pages/Terminal';
+import Connections from './pages/Connections';
 import Wizard from './pages/Wizard';
 import Yolo from './pages/Yolo';
 import GraphPage from './pages/GraphPage';
@@ -37,6 +38,7 @@ function App() {
         <Route path="/automations" element={<Automations />} />
         <Route path="/inbox" element={<Inbox />} />
         <Route path="/terminal" element={<TerminalPage />} />
+        <Route path="/connections" element={<Connections />} />
         <Route path="/backlog" element={<BacklogPage />} />
         <Route path="/wizard" element={<Wizard />} />
         <Route path="/yolo" element={<Yolo />} />

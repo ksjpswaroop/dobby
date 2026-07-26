@@ -95,6 +95,9 @@ async def lifespan(app: FastAPI):
     scheduler = getattr(app.state, "scheduler", None)
     if scheduler:
         await scheduler.stop()
+    from src.mcp import registry as mcp_registry
+
+    await mcp_registry.shutdown()
     get_token_manager().revoke()
     logger.info("dobby_shutdown", message="Shutting down Dobby v2.0...")
 
@@ -224,6 +227,10 @@ app.include_router(research_router)
 # Include inbox routes (approvals + parked asks)
 from src.api.inbox_routes import router as inbox_router
 app.include_router(inbox_router)
+
+# Include MCP routes (external tool servers)
+from src.api.mcp_routes import router as mcp_router
+app.include_router(mcp_router)
 
 # Include terminal routes (approval-gated command execution)
 from src.api.terminal_routes import router as terminal_router
