@@ -72,9 +72,22 @@ async def lifespan(app: FastAPI):
 
     logger.info("database_initialized", path=str(db_path))
 
+    # Start the always-on scheduler. It lives inside this process rather than a
+    # separate daemon: the app *is* the scheduler, which is the only design that
+    # works for a desktop app that is sometimes closed. Startup also catches up
+    # anything that came due while it was.
+    from src.services.automation_service import SchedulerLoop
+
+    app.state.scheduler = SchedulerLoop(app.state.db)
+    if os.environ.get("DOBBY_DISABLE_SCHEDULER") != "1":
+        app.state.scheduler.start()
+
     yield
-    
+
     # Shutdown
+    scheduler = getattr(app.state, "scheduler", None)
+    if scheduler:
+        await scheduler.stop()
     logger.info("dobby_shutdown", message="Shutting down Dobby v2.0...")
 
 
@@ -155,6 +168,10 @@ app.include_router(mindmap_router)
 # Include research routes (the stage before Create)
 from src.api.research_routes import router as research_router
 app.include_router(research_router)
+
+# Include automation routes (scheduled work)
+from src.api.automation_routes import router as automation_router
+app.include_router(automation_router)
 
 
 # Health check endpoint

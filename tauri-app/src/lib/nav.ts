@@ -90,6 +90,7 @@ export const NAV_SECTIONS: NavSection[] = [
     // Live tabs lead. A section whose first tab is a "coming soon" card reads
     // as an empty section, however much works further along the strip.
     items: [
+      { label: 'Automations', route: '/automations', icon: IconFlow, status: 'live' },
       { label: 'Commands', route: '/command', icon: IconCommand, status: 'live' },
       { label: 'Skills', route: '/skills', icon: IconSkill, status: 'planned', phase: 'P3',
         blurb: 'Author reusable AI skills (prompt + tools + schema) you can run and publish.' },

@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import Documents from './pages/Documents';
 import Research from './pages/Research';
+import Automations from './pages/Automations';
 import Wizard from './pages/Wizard';
 import Yolo from './pages/Yolo';
 import GraphPage from './pages/GraphPage';
@@ -31,6 +32,7 @@ function App() {
         <Route path="/projects" element={<Projects />} />
         <Route path="/documents" element={<Documents />} />
         <Route path="/research" element={<Research />} />
+        <Route path="/automations" element={<Automations />} />
         <Route path="/backlog" element={<BacklogPage />} />
         <Route path="/wizard" element={<Wizard />} />
         <Route path="/yolo" element={<Yolo />} />
@@ -46,7 +48,7 @@ function App() {
             sidebar click to a planned route made two of the five verbs open on
             a "coming soon" card while live tabs sat one along from it. */}
         <Route path="/create" element={<Navigate to="/wizard" replace />} />
-        <Route path="/automate" element={<Navigate to="/command" replace />} />
+        <Route path="/automate" element={<Navigate to="/automations" replace />} />
         <Route path="/develop" element={<Navigate to="/logs" replace />} />
         {PLANNED_ROUTES.map((r) => (
           <Route key={r} path={r} element={<Planned />} />

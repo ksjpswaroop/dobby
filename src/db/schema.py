@@ -372,7 +372,9 @@ class DatabaseManager:
         # Register models defined in sibling modules so create_all sees their
         # tables. Imported here (not at module top) to avoid a circular import,
         # since those modules import Base from this one.
-        from src.db import mindmap_models, research_models, run_models  # noqa: F401
+        from src.db import (  # noqa: F401
+            automation_models, mindmap_models, research_models, run_models,
+        )
 
         # Create all tables
         Base.metadata.create_all(bind=self.engine)
