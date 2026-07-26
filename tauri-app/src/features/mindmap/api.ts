@@ -6,13 +6,14 @@
  * the FastAPI sidecar is reachable from both the Tauri webview and a browser.
  */
 import type { MapTree, MindMap, MindMapEdge, MindMapNode } from './types';
+import { authedFetch } from '../../lib/auth';
 
 const BASE = 'http://localhost:8000/api/v1/mindmaps';
 
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
   let resp: Response;
   try {
-    resp = await fetch(`${BASE}${path}`, {
+    resp = await authedFetch(`${BASE}${path}`, {
       method,
       headers: body ? { 'Content-Type': 'application/json' } : undefined,
       body: body ? JSON.stringify(body) : undefined,
@@ -109,7 +110,7 @@ export const mindmapApi = {
   exportJson: (mapId: string) => req<Record<string, unknown>>('GET', `/map/${mapId}/export/json`),
 
   exportText: async (mapId: string, format: 'markdown' | 'mermaid' | 'outline') => {
-    const resp = await fetch(`${BASE}/map/${mapId}/export/${format}`);
+    const resp = await authedFetch(`${BASE}/map/${mapId}/export/${format}`);
     if (!resp.ok) throw new Error(`Export failed (${resp.status})`);
     return resp.text();
   },

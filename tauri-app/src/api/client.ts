@@ -5,6 +5,7 @@
  */
 
 import { invoke } from '@tauri-apps/api/core';
+import { authedFetch } from '../lib/auth';
 
 // ============================================================================
 // Type Definitions
@@ -262,7 +263,7 @@ async function http<T>(
 ): Promise<T> {
   let resp: Response;
   try {
-    resp = await fetch(`${API_BASE}${path}`, {
+    resp = await authedFetch(`${API_BASE}${path}`, {
       method,
       headers: body ? { 'Content-Type': 'application/json' } : undefined,
       body: body ? JSON.stringify(body) : undefined,

@@ -5,6 +5,7 @@ import Projects from './pages/Projects';
 import Documents from './pages/Documents';
 import Research from './pages/Research';
 import Automations from './pages/Automations';
+import Inbox from './pages/Inbox';
 import Wizard from './pages/Wizard';
 import Yolo from './pages/Yolo';
 import GraphPage from './pages/GraphPage';
@@ -33,6 +34,7 @@ function App() {
         <Route path="/documents" element={<Documents />} />
         <Route path="/research" element={<Research />} />
         <Route path="/automations" element={<Automations />} />
+        <Route path="/inbox" element={<Inbox />} />
         <Route path="/backlog" element={<BacklogPage />} />
         <Route path="/wizard" element={<Wizard />} />
         <Route path="/yolo" element={<Yolo />} />

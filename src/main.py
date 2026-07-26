@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+import os
 import structlog
 from pathlib import Path
 
@@ -72,6 +73,12 @@ async def lifespan(app: FastAPI):
 
     logger.info("database_initialized", path=str(db_path))
 
+    # Mint this launch's API token before anything can serve a request.
+    from src.security.tokens import get_token_manager
+
+    get_token_manager().publish()
+    logger.info("launch_token_ready", file=str(get_token_manager().path))
+
     # Start the always-on scheduler. It lives inside this process rather than a
     # separate daemon: the app *is* the scheduler, which is the only design that
     # works for a desktop app that is sometimes closed. Startup also catches up
@@ -88,6 +95,7 @@ async def lifespan(app: FastAPI):
     scheduler = getattr(app.state, "scheduler", None)
     if scheduler:
         await scheduler.stop()
+    get_token_manager().revoke()
     logger.info("dobby_shutdown", message="Shutting down Dobby v2.0...")
 
 
@@ -116,6 +124,46 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def require_launch_token(request: Request, call_next):
+    """Gate every API route behind this launch's token.
+
+    "It's only localhost" is not an access boundary — every other process on the
+    machine can reach this port, and any page the user visits can issue requests
+    to it. Health checks and the handshake stay open; see `src/security/tokens`.
+
+    Set DOBBY_DISABLE_AUTH=1 to turn this off for local debugging.
+    """
+    from src.security.tokens import bearer_from_header, get_token_manager, is_open_path
+
+    path = request.url.path
+    if (
+        os.environ.get("DOBBY_DISABLE_AUTH") == "1"
+        or request.method == "OPTIONS"          # CORS preflight carries no auth
+        or is_open_path(path)
+        or not path.startswith("/api/")
+    ):
+        return await call_next(request)
+
+    manager = get_token_manager()
+    presented = bearer_from_header(request.headers.get("authorization"))
+    # EventSource cannot set headers, so the SSE stream accepts ?token= instead.
+    if presented is None:
+        presented = request.query_params.get("token")
+
+    if not manager.verify(presented):
+        return JSONResponse(
+            status_code=401,
+            content={
+                "error": "unauthorized",
+                "message": ("This request needs the current launch token. "
+                            "Fetch it from /api/v1/auth/handshake."),
+                "path": path,
+            },
+        )
+    return await call_next(request)
+
+
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -140,6 +188,10 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # Include API routes
 app.include_router(api_router, prefix="/api/v1")
+
+# Include the handshake route (must be reachable without a token)
+from src.api.auth_routes import router as auth_router
+app.include_router(auth_router)
 
 # Include dashboard routes
 from src.api.dashboard_routes import router as dashboard_router
@@ -168,6 +220,10 @@ app.include_router(mindmap_router)
 # Include research routes (the stage before Create)
 from src.api.research_routes import router as research_router
 app.include_router(research_router)
+
+# Include inbox routes (approvals + parked asks)
+from src.api.inbox_routes import router as inbox_router
+app.include_router(inbox_router)
 
 # Include automation routes (scheduled work)
 from src.api.automation_routes import router as automation_router

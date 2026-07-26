@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { RUN_STREAM_URL } from '../api/client';
+import { withToken } from './auth';
 
 export interface LiveEvent {
   type: 'run.start' | 'run.event' | 'run.finish';
@@ -35,8 +36,19 @@ export function useRunStream(enabled = true, cap = 200) {
 
   useEffect(() => {
     if (!enabled) return;
-    const es = new EventSource(RUN_STREAM_URL);
-    esRef.current = es;
+    let cancelled = false;
+    let es: EventSource | null = null;
+
+    // EventSource cannot set an Authorization header, so the launch token
+    // travels as a query parameter here — the one endpoint where it must.
+    withToken(RUN_STREAM_URL).then((url) => {
+      if (cancelled) return;
+      es = new EventSource(url);
+      esRef.current = es;
+      wire(es);
+    });
+
+    function wire(es: EventSource) {
 
     es.onopen = () => setConnected(true);
     es.onerror = () => setConnected(false);
@@ -51,8 +63,11 @@ export function useRunStream(enabled = true, cap = 200) {
       }
     };
 
+    }
+
     return () => {
-      es.close();
+      cancelled = true;
+      es?.close();
       esRef.current = null;
       setConnected(false);
     };

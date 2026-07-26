@@ -490,6 +490,31 @@ async def run_brief(db: DatabaseManager, brief_id: str) -> Dict[str, Any]:
         _set_brief(db, brief_id, status="failed", error=str(e))
         raise ResearchError(f"Cannot reach Ollama: {e}")
 
+    # A remote search provider sends the topic off the machine. That is the one
+    # thing in the research pipeline the user has to actually consent to, so it
+    # goes through the approval gate — once per brief, and remembered if they
+    # say so. Local providers (none/wigolo/searxng) never reach this.
+    if provider in S.REMOTE_PROVIDERS:
+        from src.services import inbox_service as inbox
+
+        verdict = await inbox.require(
+            db, project_id, "net.fetch", provider,
+            title=f"Send search queries to {provider}?",
+            detail=(f"Researching “{topic}”. Query text for all five tracks will "
+                    f"be sent to {provider}, which is a third-party service. "
+                    "Local providers (wigolo, SearXNG) keep everything on this "
+                    "machine."),
+            risk="medium", source="research", source_id=brief_id, timeout=120,
+        )
+        if not verdict["allowed"]:
+            _set_brief(db, brief_id, status="failed",
+                       error=f"Web search not approved ({verdict['reason']}).")
+            raise ResearchError(
+                f"Sending queries to {provider} was not approved "
+                f"({verdict['reason']}). Switch to a local provider in Settings, "
+                "or approve the request in the Inbox."
+            )
+
     tracer = Tracer(db, kind="research", label=topic[:80],
                     project_id=project_id, model=settings.model,
                     total_steps=len(TRACK_KINDS) + 2)

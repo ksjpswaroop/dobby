@@ -1,3 +1,4 @@
+import { authedFetch } from '../../lib/auth';
 /**
  * Research API client.
  *
@@ -10,7 +11,7 @@ const BASE = 'http://localhost:8000/api/v1/research';
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
   let resp: Response;
   try {
-    resp = await fetch(`${BASE}${path}`, {
+    resp = await authedFetch(`${BASE}${path}`, {
       method,
       headers: body ? { 'Content-Type': 'application/json' } : undefined,
       body: body ? JSON.stringify(body) : undefined,

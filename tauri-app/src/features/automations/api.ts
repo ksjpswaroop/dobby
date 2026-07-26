@@ -1,10 +1,11 @@
+import { authedFetch } from '../../lib/auth';
 /** Automations API client — scheduled work. */
 const BASE = 'http://localhost:8000/api/v1/automations';
 
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
   let resp: Response;
   try {
-    resp = await fetch(`${BASE}${path}`, {
+    resp = await authedFetch(`${BASE}${path}`, {
       method,
       headers: body ? { 'Content-Type': 'application/json' } : undefined,
       body: body ? JSON.stringify(body) : undefined,
