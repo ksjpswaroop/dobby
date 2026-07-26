@@ -62,6 +62,14 @@ class Settings:
     shell_allowlist: str = ""
     workspace_root: str = ""
 
+    # Additional model providers. Ollama is always available; these are opt-in.
+    # An OpenAI-compatible base_url covers LM Studio, llama.cpp, vLLM, OpenRouter
+    # and OpenAI itself — only the URL differs.
+    openai_base_url: str = ""
+    openai_api_key: str = ""
+    openai_label: str = ""
+    anthropic_api_key: str = ""
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 

@@ -228,6 +228,10 @@ app.include_router(research_router)
 from src.api.inbox_routes import router as inbox_router
 app.include_router(inbox_router)
 
+# Include provider routes (multi-provider model access)
+from src.api.provider_routes import router as provider_router
+app.include_router(provider_router)
+
 # Include attachment routes (local files as source material)
 from src.api.attachment_routes import router as attachment_router
 app.include_router(attachment_router)

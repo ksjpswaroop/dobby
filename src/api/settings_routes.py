@@ -37,6 +37,9 @@ class SettingsResponse(BaseModel):
     wigolo_url: str = ""
     wigolo_token: str = ""
     symbolica_url: str = ""
+    shell_allowlist: str = ""
+    openai_base_url: str = ""
+    openai_label: str = ""
 
     # API keys are deliberately absent from the response. The UI only ever needs
     # to know whether one is set, not what it is, so a stored secret is never
@@ -44,6 +47,8 @@ class SettingsResponse(BaseModel):
     tavily_key_set: bool = False
     brave_key_set: bool = False
     symbolica_key_set: bool = False
+    openai_key_set: bool = False
+    anthropic_key_set: bool = False
 
     @classmethod
     def from_settings(cls, s) -> "SettingsResponse":
@@ -53,6 +58,8 @@ class SettingsResponse(BaseModel):
             tavily_key_set=bool(d.get("tavily_api_key")),
             brave_key_set=bool(d.get("brave_api_key")),
             symbolica_key_set=bool(d.get("symbolica_api_key")),
+            openai_key_set=bool(d.get("openai_api_key")),
+            anthropic_key_set=bool(d.get("anthropic_api_key")),
         )
 
 
@@ -74,6 +81,13 @@ class SettingsUpdate(BaseModel):
     # Optional symbolic reasoning engine.
     symbolica_url: str | None = None
     symbolica_api_key: str | None = None
+
+    shell_allowlist: str | None = None
+    workspace_root: str | None = None
+    openai_base_url: str | None = None
+    openai_api_key: str | None = None
+    openai_label: str | None = None
+    anthropic_api_key: str | None = None
 
     @field_validator("search_provider")
     @classmethod
