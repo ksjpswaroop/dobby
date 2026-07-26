@@ -56,6 +56,12 @@ class Settings:
     symbolica_url: str = ""
     symbolica_api_key: str = ""
 
+    # Terminal. The allowlist is EMPTY by default (OW row 53): nothing runs
+    # without an explicit human decision until the user opts a program in.
+    # Comma-separated program names, never whole command lines.
+    shell_allowlist: str = ""
+    workspace_root: str = ""
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 

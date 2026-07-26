@@ -225,6 +225,10 @@ app.include_router(research_router)
 from src.api.inbox_routes import router as inbox_router
 app.include_router(inbox_router)
 
+# Include terminal routes (approval-gated command execution)
+from src.api.terminal_routes import router as terminal_router
+app.include_router(terminal_router)
+
 # Include automation routes (scheduled work)
 from src.api.automation_routes import router as automation_router
 app.include_router(automation_router)
