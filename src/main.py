@@ -79,6 +79,16 @@ async def lifespan(app: FastAPI):
     get_token_manager().publish()
     logger.info("launch_token_ready", file=str(get_token_manager().path))
 
+    # A restart leaves sessions marked 'active' with nobody driving them.
+    # Suspending is right: the checkpoints are still good, so the work is
+    # paused rather than lost.
+    from src.services.session_service import reconcile as reconcile_sessions
+
+    try:
+        reconcile_sessions(app.state.db, DEFAULT_PROJECT_ID)
+    except Exception:
+        logger.warning("session_reconcile_failed", exc_info=True)
+
     # Start the always-on scheduler. It lives inside this process rather than a
     # separate daemon: the app *is* the scheduler, which is the only design that
     # works for a desktop app that is sometimes closed. Startup also catches up
@@ -227,6 +237,10 @@ app.include_router(research_router)
 # Include inbox routes (approvals + parked asks)
 from src.api.inbox_routes import router as inbox_router
 app.include_router(inbox_router)
+
+# Include work-session routes (durable sessions + permission modes)
+from src.api.session_routes import router as session_router
+app.include_router(session_router)
 
 # Include provider routes (multi-provider model access)
 from src.api.provider_routes import router as provider_router

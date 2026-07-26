@@ -374,7 +374,7 @@ class DatabaseManager:
         # since those modules import Base from this one.
         from src.db import (  # noqa: F401
             automation_models, inbox_models, mindmap_models, research_models,
-            run_models,
+            run_models, session_models,
         )
 
         # Create all tables
