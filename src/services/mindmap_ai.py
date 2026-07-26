@@ -47,6 +47,23 @@ Never output the words "Theme", "Specific idea", or any <...> text literally.
 node_type must be one of: %s.
 No prose, no markdown fences — JSON only.""" % ", ".join(svc.NODE_TYPES)
 
+# What separates a useful map from a table of contents. These are craft rules
+# for mind mapping generally — concrete over categorical, breadth over depth,
+# no essay scaffolding — written for our schema and our node types.
+QUALITY_RULES = """Rules:
+- 4 to 6 top-level themes, each a genuinely different aspect of the subject.
+- Every theme MUST have a non-empty "children" array with 2-4 entries.
+- Two to three levels deep. A mind map is for scanning, not for reading.
+- Titles carry facts, not category labels. Prefer "Rent: under $3k downtown"
+  to "Location". A title that could head any map about any subject is wrong.
+- Skip essay scaffolding: no "Overview", "Introduction", "Summary",
+  "Conclusion", or "Other".
+- When a theme would need six or more siblings, combine related ones into a
+  single comma-separated entry rather than fanning out.
+- Branches need not be the same size. Say more where there is more to say.
+- Keep titles under 8 words, and write in the language of the subject.
+- Everything must be about the subject. Do not copy unrelated examples."""
+
 # Titles a model produces when it copies the schema instead of following it.
 _PLACEHOLDER_TITLES = {
     "theme", "specific idea", "another specific idea", "title", "name of a theme",
@@ -225,11 +242,7 @@ async def generate_map(db: DatabaseManager, project_id: str,
         f"SUBJECT: {subject}\n\n"
         f"{context_block}"
         f"Build a mind map about the SUBJECT above — \"{subject}\".\n"
-        "Rules:\n"
-        "- Exactly 4 to 6 top-level themes, each a different aspect of the subject.\n"
-        "- Every theme MUST have a non-empty \"children\" array with 2-4 specific ideas.\n"
-        "- Everything must be about the subject. Do not copy unrelated examples.\n"
-        "- Keep titles under 8 words.\n\n"
+        f"{QUALITY_RULES}\n"
         f"{SCHEMA_HINT}"
     )
 
@@ -335,6 +348,96 @@ async def regroup_map(db: DatabaseManager, map_id: str) -> Dict[str, Any]:
             "proposed_nodes": count(proposed),
         },
     }
+
+
+async def chat_edit(db: DatabaseManager, map_id: str, instruction: str) -> Dict[str, Any]:
+    """Apply a natural-language edit to a map: "drop the risks, expand marketing".
+
+    Deliberately *not* JSON. Every other AI call here fights small local models
+    for well-formed JSON and needs a repair round; editing is the one operation
+    where we can sidestep that entirely, because the map has a faithful plain-text
+    form. Markdown outline in, markdown outline out — a 1.5B model handles that
+    reliably, and a partially-mangled outline still parses into a usable tree
+    instead of failing wholesale.
+
+    The edit applies immediately rather than being proposed: chat editing is an
+    iterative loop, and `replace_from_outline` snapshots first, so undo is one
+    click away.
+    """
+    from src.services import mindmap_outline as outline_svc
+
+    instruction = (instruction or "").strip()
+    if not instruction:
+        return {"success": False, "error": "Say what you'd like changed."}
+
+    tree = svc.get_map_tree(db, map_id)
+    if not tree:
+        return {"success": False, "error": "Mind map not found"}
+
+    before = outline_svc.to_outline(tree)
+    before_count = len(tree["flat"]) - len(tree["nodes"])
+
+    prompt = (
+        "You edit mind maps that are written as markdown outlines.\n\n"
+        "CURRENT MIND MAP:\n"
+        f"{before}\n"
+        "INSTRUCTION FROM THE USER:\n"
+        f"{instruction}\n\n"
+        "Rewrite the whole outline with that instruction applied.\n"
+        "Rules:\n"
+        "- Output the COMPLETE outline, not just the part you changed.\n"
+        "- Keep every heading level (`#`, `##`, `###`) exactly as markdown headings.\n"
+        "- Keep the `# ` title line first.\n"
+        "- Leave anything the instruction did not mention untouched.\n"
+        "- Output the outline only. No commentary, no code fences.\n"
+    )
+
+    from src.settings import get_settings
+
+    s = get_settings()
+    try:
+        client = await get_ollama_client(base_url=s.ollama_host, model=s.model)
+    except Exception as e:
+        raise AIUnavailable(str(e))
+    try:
+        raw = await client.generate(prompt, max_tokens=3000, temperature=0.3)
+    finally:
+        await client.close()
+
+    text = re.sub(r"^\s*```(?:markdown|md)?\s*", "", (raw or "").strip())
+    text = re.sub(r"\s*```\s*$", "", text)
+
+    try:
+        parsed = outline_svc.parse_outline(text)
+    except ValueError:
+        return {"success": False,
+                "error": "The model didn't return a usable outline. Try rewording, "
+                         "or use a larger model."}
+
+    def count(nodes: List[Dict[str, Any]]) -> int:
+        return sum(1 + count(n.get("children") or []) for n in nodes)
+
+    after_count = count(parsed["children"])
+    # A model that ignores "output the COMPLETE outline" and returns only the
+    # edited fragment would silently destroy the rest of the map. Deletion is a
+    # legitimate instruction, so only block the case where almost everything
+    # vanished without being asked for.
+    asked_to_remove = bool(re.search(
+        r"\b(delete|remove|drop|prune|trim|clear|simplif|shorten|condense|fewer)",
+        instruction, re.I))
+    if before_count >= 5 and after_count < before_count * 0.4 and not asked_to_remove:
+        return {"success": False,
+                "error": f"The model returned only {after_count} of {before_count} nodes, "
+                         "which would have deleted most of your map. Nothing was changed."}
+
+    result = outline_svc.replace_from_outline(
+        db, map_id, text, reason=f"before: {instruction[:60]}")
+    if not result.get("success"):
+        return result
+
+    logger.info("mindmap_chat_edit", map_id=map_id, before=before_count, after=after_count)
+    return {"success": True, "nodes_before": before_count, "nodes_after": after_count,
+            "instruction": instruction}
 
 
 def apply_regroup(db: DatabaseManager, map_id: str, proposed: Dict[str, Any]) -> Dict[str, Any]:

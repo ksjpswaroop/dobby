@@ -260,6 +260,17 @@ async def export_mermaid(map_id: str, db: DatabaseManager = Depends(get_db)):
         raise HTTPException(status_code=404, detail=str(e))
 
 
+@router.get("/map/{map_id}/export/outline", response_class=PlainTextResponse)
+async def export_outline(map_id: str, db: DatabaseManager = Depends(get_db)):
+    """Heading markdown — the interchange format other mind-map tools read."""
+    from src.services import mindmap_outline as ol
+
+    tree = svc.get_map_tree(db, map_id)
+    if not tree:
+        raise HTTPException(status_code=404, detail="Mind map not found")
+    return PlainTextResponse(ol.to_outline(tree), media_type="text/markdown")
+
+
 @router.post("/import/{project_id}")
 async def import_map(project_id: str, req: ImportRequest,
                      db: DatabaseManager = Depends(get_db)):
@@ -270,6 +281,42 @@ async def import_map(project_id: str, req: ImportRequest,
     except ex.ImportError_ as e:
         # 400 with a field-level message so the UI can show what's wrong.
         raise HTTPException(status_code=400, detail=str(e))
+
+
+class OutlineImport(BaseModel):
+    outline: str = Field(..., description="Heading or bullet markdown")
+    title: Optional[str] = None
+
+
+@router.post("/import/{project_id}/outline")
+async def import_outline(project_id: str, req: OutlineImport,
+                         db: DatabaseManager = Depends(get_db)):
+    """Build a map from markdown pasted out of any other tool."""
+    from src.services import mindmap_outline as ol
+
+    try:
+        return ol.import_outline(db, project_id, req.outline, req.title)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+class OutlineReplace(BaseModel):
+    outline: str
+
+
+@router.put("/map/{map_id}/outline")
+async def replace_outline(map_id: str, req: OutlineReplace,
+                          db: DatabaseManager = Depends(get_db)):
+    """Rewrite a map from edited outline text. Snapshots first, so undo works."""
+    from src.services import mindmap_outline as ol
+
+    try:
+        result = ol.replace_from_outline(db, map_id, req.outline)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if not result.get("success"):
+        raise HTTPException(status_code=404, detail=result.get("error", "Replace failed"))
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -321,6 +368,24 @@ async def ai_regroup(map_id: str, db: DatabaseManager = Depends(get_db)):
         raise HTTPException(status_code=503, detail=str(e))
     if not result.get("success"):
         raise HTTPException(status_code=422, detail=result.get("error", "Regroup failed"))
+    return result
+
+
+class ChatEdit(BaseModel):
+    instruction: str = Field(..., min_length=1, max_length=1000)
+
+
+@router.post("/ai/chat/{map_id}")
+async def ai_chat_edit(map_id: str, req: ChatEdit, db: DatabaseManager = Depends(get_db)):
+    """Edit a map in natural language. Applies immediately; snapshotted for undo."""
+    from src.services import mindmap_ai
+
+    try:
+        result = await mindmap_ai.chat_edit(db, map_id, req.instruction)
+    except mindmap_ai.AIUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    if not result.get("success"):
+        raise HTTPException(status_code=422, detail=result.get("error", "Edit failed"))
     return result
 
 

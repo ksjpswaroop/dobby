@@ -55,6 +55,16 @@ interface MindMapState {
   layout: LayoutMode;
   setLayout: (m: LayoutMode) => void;
   importMap: (projectId: string, data: unknown) => Promise<void>;
+
+  // Outline interchange + chat editing
+  chatBusy: boolean;
+  /** Set after any whole-tree rewrite, so the UI can offer a one-click revert. */
+  revertPoint: { snapshotId: string; label: string } | null;
+  chatEdit: (instruction: string) => Promise<boolean>;
+  importOutline: (projectId: string, outline: string, title?: string) => Promise<void>;
+  replaceOutline: (outline: string) => Promise<boolean>;
+  revertLast: () => Promise<void>;
+  toggleChecked: (nodeId: string) => Promise<void>;
 }
 
 export const useMindMapStore = create<MindMapState>((set, get) => {
@@ -74,6 +84,29 @@ export const useMindMapStore = create<MindMapState>((set, get) => {
     if (!id) return;
     const tree = await mindmapApi.getTree(id);
     set({ tree });
+  };
+
+  /**
+   * Point `revertLast` at the newest server snapshot.
+   *
+   * Called after any operation that rebuilds the whole tree. The local undo
+   * stack is dropped at the same time: its snapshots reference node ids that no
+   * longer exist, and replaying them would silently do nothing.
+   */
+  const markRevertPoint = async () => {
+    const id = get().activeMapId;
+    if (!id) return;
+    try {
+      const [latest] = await mindmapApi.listSnapshots(id);
+      set({
+        revertPoint: latest ? { snapshotId: latest.id, label: latest.label } : null,
+        undoStack: [],
+        redoStack: [],
+      });
+    } catch {
+      // A missing revert point isn't worth failing the edit over.
+      set({ revertPoint: null, undoStack: [], redoStack: [] });
+    }
   };
 
   /**
@@ -122,6 +155,8 @@ export const useMindMapStore = create<MindMapState>((set, get) => {
     aiBusy: null,
     proposal: null,
     layout: (localStorage.getItem('dobby-mindmap-layout') as LayoutMode) || 'tree',
+    chatBusy: false,
+    revertPoint: null,
 
     async loadMaps(projectId) {
       set({ loading: true, error: null });
@@ -335,6 +370,86 @@ export const useMindMapStore = create<MindMapState>((set, get) => {
 
     dismissProposal() {
       set({ proposal: null });
+    },
+
+    async chatEdit(instruction) {
+      const id = get().activeMapId;
+      if (!id || !instruction.trim()) return false;
+      set({ chatBusy: true, error: null });
+      try {
+        await mindmapApi.aiChat(id, instruction.trim());
+        await reload();
+        await markRevertPoint();
+        return true;
+      } catch (e) {
+        set({ error: e instanceof Error ? e.message : 'Edit failed' });
+        return false;
+      } finally {
+        set({ chatBusy: false });
+      }
+    },
+
+    async importOutline(projectId, outline, title) {
+      set({ loading: true, error: null });
+      try {
+        const r = await mindmapApi.importOutline(projectId, outline, title);
+        await get().loadMaps(projectId);
+        await get().selectMap(r.map_id);
+      } catch (e) {
+        set({ error: e instanceof Error ? e.message : 'Import failed' });
+        throw e;
+      } finally {
+        set({ loading: false });
+      }
+    },
+
+    async replaceOutline(outline) {
+      const id = get().activeMapId;
+      if (!id) return false;
+      set({ saving: true, error: null });
+      try {
+        await mindmapApi.replaceOutline(id, outline);
+        await reload();
+        await markRevertPoint();
+        return true;
+      } catch (e) {
+        set({ error: e instanceof Error ? e.message : 'Could not apply the outline' });
+        return false;
+      } finally {
+        set({ saving: false });
+      }
+    },
+
+    async revertLast() {
+      const id = get().activeMapId;
+      const point = get().revertPoint;
+      if (!id || !point) return;
+      set({ saving: true, error: null });
+      try {
+        await mindmapApi.restoreSnapshot(id, point.snapshotId);
+        set({ revertPoint: null });
+        await reload();
+      } catch (e) {
+        set({ error: e instanceof Error ? e.message : 'Revert failed' });
+      } finally {
+        set({ saving: false });
+      }
+    },
+
+    async toggleChecked(nodeId) {
+      const node = get().tree?.flat.find((n) => n.id === nodeId);
+      if (!node) return;
+      const next = !(node.metadata || {}).checked;
+      // Written straight through rather than optimistically: the canvas renders
+      // from the nested `nodes` tree, so a patch to `flat` alone would not show
+      // up, and patching both would duplicate the server's merge logic.
+      try {
+        await mindmapApi.updateNode(nodeId, { metadata: { checked: next } });
+        await reload();
+      } catch (e) {
+        set({ error: e instanceof Error ? e.message : 'Could not update' });
+        await reload();
+      }
     },
 
     setLayout(m) {

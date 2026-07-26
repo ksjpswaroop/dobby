@@ -9,7 +9,13 @@ export interface MindNodeData {
   childCount: number;
   collapsed: boolean;
   isRoot: boolean;
+  /** Hue of the top-level branch this node belongs to. */
+  branchColor?: string;
+  /** Explicit per-node colour, set by the user. Wins over the branch hue. */
+  color?: string | null;
+  checked?: boolean;
   onToggle: (id: string) => void;
+  onToggleChecked: (id: string) => void;
   [key: string]: unknown;
 }
 
@@ -19,31 +25,73 @@ export interface MindNodeData {
  */
 function MindMapNodeInner({ id, data, selected }: NodeProps) {
   const d = data as MindNodeData;
-  const accent = TYPE_COLOR[d.nodeType] ?? 'rgb(var(--brand))';
+  // Explicit colour beats the branch hue, which beats the node-type accent.
+  const accent =
+    d.color || d.branchColor || TYPE_COLOR[d.nodeType] || 'rgb(var(--brand))';
 
   return (
     <div
       role="treeitem"
       aria-selected={!!selected}
-      aria-label={`${d.title}, type ${d.nodeType}${d.childCount ? `, ${d.childCount} children` : ''}`}
+      aria-label={`${d.title}, type ${d.nodeType}${
+        d.checked ? ', done' : ''
+      }${d.childCount ? `, ${d.childCount} children` : ''}`}
       aria-expanded={d.childCount > 0 ? !d.collapsed : undefined}
       className={cn(
         'group relative min-w-[168px] max-w-[260px] rounded-xl border bg-surface px-3 py-2 shadow-soft transition-shadow',
-        selected ? 'border-brand ring-2 ring-brand/30' : 'border-line hover:shadow-card'
+        selected ? 'border-brand ring-2 ring-brand/30' : 'border-line hover:shadow-card',
+        d.checked && 'opacity-60'
       )}
       style={{ borderLeft: `4px solid ${accent}` }}
     >
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-line" />
 
-      <div
-        className={cn(
-          'truncate text-[13px] text-ink',
-          d.isRoot ? 'font-semibold' : 'font-medium'
+      <div className="flex items-start gap-1.5">
+        {!d.isRoot && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              d.onToggleChecked(id);
+            }}
+            role="checkbox"
+            aria-checked={!!d.checked}
+            aria-label={d.checked ? `Mark "${d.title}" as not done` : `Mark "${d.title}" as done`}
+            title={d.checked ? 'Mark as not done' : 'Mark as done'}
+            className={cn(
+              'mt-[3px] flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border transition-colors',
+              d.checked
+                ? 'border-transparent text-white'
+                : 'border-line opacity-0 hover:border-brand group-hover:opacity-100 focus-visible:opacity-100'
+            )}
+            style={d.checked ? { background: accent } : undefined}
+          >
+            {d.checked && (
+              <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" aria-hidden="true">
+                <path
+                  d="M2.5 6.2 4.8 8.5 9.5 3.8"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            )}
+          </button>
         )}
-        title={d.title}
-      >
-        {d.title}
+
+        <div
+          className={cn(
+            'truncate text-[13px] text-ink',
+            d.isRoot ? 'font-semibold' : 'font-medium',
+            d.checked && 'line-through'
+          )}
+          title={d.title}
+        >
+          {d.title}
+        </div>
       </div>
+
       <div className="mt-0.5 flex items-center gap-1.5">
         <span className="h-1.5 w-1.5 rounded-full" style={{ background: accent }} />
         <span className="truncate text-[10px] uppercase tracking-wide text-ink-muted">

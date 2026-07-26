@@ -108,7 +108,7 @@ export const mindmapApi = {
   // --- Export / import (Phase 3) ---
   exportJson: (mapId: string) => req<Record<string, unknown>>('GET', `/map/${mapId}/export/json`),
 
-  exportText: async (mapId: string, format: 'markdown' | 'mermaid') => {
+  exportText: async (mapId: string, format: 'markdown' | 'mermaid' | 'outline') => {
     const resp = await fetch(`${BASE}/map/${mapId}/export/${format}`);
     if (!resp.ok) throw new Error(`Export failed (${resp.status})`);
     return resp.text();
@@ -116,7 +116,41 @@ export const mindmapApi = {
 
   importMap: (projectId: string, data: unknown) =>
     req<{ map_id: string; nodes_imported: number }>('POST', `/import/${projectId}`, { data }),
+
+  // --- Outline interchange ---
+  // Heading markdown is the format other mind-map tools speak, so it doubles as
+  // the import path for anything pasted from outside Dobby.
+  importOutline: (projectId: string, outline: string, title?: string) =>
+    req<{ map_id: string; title: string; nodes_imported: number }>(
+      'POST',
+      `/import/${projectId}/outline`,
+      { outline, title: title ?? null }
+    ),
+
+  replaceOutline: (mapId: string, outline: string) =>
+    req<{ nodes_created: number }>('PUT', `/map/${mapId}/outline`, { outline }),
+
+  aiChat: (mapId: string, instruction: string) =>
+    req<{ nodes_before: number; nodes_after: number }>('POST', `/ai/chat/${mapId}`, {
+      instruction,
+    }),
+
+  // --- Snapshots ---
+  // The client undo stack replays edits onto surviving nodes, so it cannot bring
+  // back a node that was deleted. Operations that rebuild the whole tree (chat
+  // editing, outline replace) rely on these server-side restore points instead.
+  listSnapshots: (mapId: string) =>
+    req<{ snapshots: Snapshot[] }>('GET', `/map/${mapId}/snapshots`).then((r) => r.snapshots),
+
+  restoreSnapshot: (mapId: string, snapshotId: string) =>
+    req<{ success: boolean }>('POST', `/map/${mapId}/restore/${snapshotId}`),
 };
+
+export interface Snapshot {
+  id: string;
+  label: string;
+  created_at: string | null;
+}
 
 export interface ProposedNode {
   title: string;

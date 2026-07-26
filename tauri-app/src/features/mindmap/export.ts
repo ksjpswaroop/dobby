@@ -92,10 +92,12 @@ export async function exportPng(title: string) {
   });
 }
 
+const EXT: Record<string, string> = { markdown: 'md', outline: 'md', mermaid: 'mmd' };
+
 export async function exportStructured(
   mapId: string,
   title: string,
-  format: 'json' | 'markdown' | 'mermaid'
+  format: 'json' | 'markdown' | 'mermaid' | 'outline'
 ) {
   if (format === 'json') {
     const data = await mindmapApi.exportJson(mapId);
@@ -103,6 +105,5 @@ export async function exportStructured(
     return;
   }
   const text = await mindmapApi.exportText(mapId, format);
-  const ext = format === 'markdown' ? 'md' : 'mmd';
-  download(`${safeName(title)}.${ext}`, text, 'text/plain');
+  download(`${safeName(title)}.${EXT[format] ?? 'txt'}`, text, 'text/plain');
 }

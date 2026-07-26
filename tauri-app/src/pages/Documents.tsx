@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { DocumentsResponse, DocumentItem } from '../api/client';
 import { Card, Button, PageHeader, Badge, LoadingState, ErrorState, EmptyState } from '../components/ui';
-import { IconDoc, IconBolt, IconLayers, IconDownload, IconRefresh } from '../lib/icons';
+import { IconDoc, IconBolt, IconLayers, IconDownload, IconRefresh, IconMindmap } from '../lib/icons';
+import { mindmapApi } from '../features/mindmap/api';
 import { cn } from '../lib/cn';
 import { useToast } from '../lib/toast';
 import { useProject } from '../lib/project';
@@ -33,6 +34,7 @@ export default function Documents() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mapping, setMapping] = useState(false);
 
   const load = async () => {
     try {
@@ -74,6 +76,30 @@ export default function Documents() {
     a.click();
     URL.revokeObjectURL(url);
     toast('Downloaded', 'success');
+  };
+
+  /**
+   * Turn a generated document into a mind map.
+   *
+   * Generated docs are already heading-structured markdown, which is exactly
+   * what the outline importer consumes — so a spec becomes a navigable map with
+   * no extra conversion step.
+   */
+  const toMindMap = async (d: DocumentItem) => {
+    if (!d.content?.trim()) {
+      toast('That document is empty', 'error');
+      return;
+    }
+    setMapping(true);
+    try {
+      const r = await mindmapApi.importOutline(projectId, d.content, d.title);
+      toast(`Mind map created — ${r.nodes_imported} nodes`, 'success');
+      navigate('/mindmap');
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Could not build a mind map', 'error');
+    } finally {
+      setMapping(false);
+    }
   };
 
   if (loading) return <LoadingState label="Loading documents…" />;
@@ -157,9 +183,20 @@ export default function Documents() {
                       <span>{selected.word_count} words</span>
                     </div>
                   </div>
-                  <Button variant="secondary" icon={<IconDownload size={16} />} onClick={() => download(selected)}>
-                    Export .md
-                  </Button>
+                  <div className="flex shrink-0 gap-2">
+                    <Button
+                      variant="ghost"
+                      icon={<IconMindmap size={16} />}
+                      loading={mapping}
+                      onClick={() => toMindMap(selected)}
+                      title="Turn this document's headings into a mind map"
+                    >
+                      Mind map
+                    </Button>
+                    <Button variant="secondary" icon={<IconDownload size={16} />} onClick={() => download(selected)}>
+                      Export .md
+                    </Button>
+                  </div>
                 </div>
                 <pre
                   data-selectable

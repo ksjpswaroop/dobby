@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useMindMapStore } from './store';
 import { MindMapCanvas } from './components/MindMapCanvas';
 import { NodeInspector } from './components/NodeInspector';
 import { MapToolbar } from './components/MapToolbar';
+import { OutlinePanel } from './components/OutlinePanel';
 import { RegroupPreview } from './components/RegroupPreview';
 import { MindMapErrorBoundary } from './components/MindMapErrorBoundary';
 import { Button, LoadingState, EmptyState } from '../../components/ui';
@@ -26,6 +27,8 @@ export function MindMapWorkspace({ projectId }: { projectId: string; sessionId?:
   const refresh = useMindMapStore((s) => s.refresh);
   const undo = useMindMapStore((s) => s.undo);
   const redo = useMindMapStore((s) => s.redo);
+
+  const [panelOpen, setPanelOpen] = useState(false);
 
   useEffect(() => {
     loadMaps(projectId);
@@ -96,7 +99,11 @@ export function MindMapWorkspace({ projectId }: { projectId: string; sessionId?:
 
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-surface">
-      <MapToolbar projectId={projectId} />
+      <MapToolbar
+        projectId={projectId}
+        panelOpen={panelOpen}
+        onTogglePanel={() => setPanelOpen((v) => !v)}
+      />
       {error && (
         <div role="alert" className="border-b border-danger/30 bg-danger/10 px-4 py-2 text-xs text-danger">
           {error}
@@ -106,26 +113,37 @@ export function MindMapWorkspace({ projectId }: { projectId: string; sessionId?:
       <p aria-live="polite" className="sr-only">
         {tree ? `${tree.flat.length} nodes. ${selectedNodeId ? 'A node is selected.' : ''}` : ''}
       </p>
-      <div className="relative h-[calc(100vh-260px)] min-h-[420px]">
-        {tree && tree.flat.length === 0 ? (
-          <div className="flex h-full items-center justify-center">
-            <EmptyState
-              icon={<IconMindmap size={22} />}
-              title="This map is empty"
-              description="Add a root node to start mapping."
-              action={
-                <Button variant="primary" icon={<IconPlus size={16} />} onClick={() => addNode(null)}>
-                  Add root node
-                </Button>
-              }
-            />
-          </div>
-        ) : (
-          <MindMapErrorBoundary onReset={() => refresh()}>
-            <MindMapCanvas />
-          </MindMapErrorBoundary>
+      <div className="flex h-[calc(100vh-260px)] min-h-[420px]">
+        <div className="relative flex-1">
+          {tree && tree.flat.length === 0 ? (
+            <div className="flex h-full items-center justify-center">
+              <EmptyState
+                icon={<IconMindmap size={22} />}
+                title="This map is empty"
+                description="Add a root node, or paste an outline in the side panel to build it from text."
+                action={
+                  <div className="flex gap-2">
+                    <Button variant="primary" icon={<IconPlus size={16} />}
+                            onClick={() => addNode(null)}>
+                      Add root node
+                    </Button>
+                    <Button variant="secondary" onClick={() => setPanelOpen(true)}>
+                      Paste an outline
+                    </Button>
+                  </div>
+                }
+              />
+            </div>
+          ) : (
+            <MindMapErrorBoundary onReset={() => refresh()}>
+              <MindMapCanvas />
+            </MindMapErrorBoundary>
+          )}
+          <NodeInspector />
+        </div>
+        {panelOpen && (
+          <OutlinePanel projectId={projectId} onClose={() => setPanelOpen(false)} />
         )}
-        <NodeInspector />
       </div>
       <RegroupPreview />
     </div>

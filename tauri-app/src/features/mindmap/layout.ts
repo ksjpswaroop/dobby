@@ -122,6 +122,44 @@ export function layoutTree(
     : layoutTreeMode(tree, collapsed);
 }
 
+/* -------------------------------------------------------------------------- */
+/* Branch colour                                                               */
+/* -------------------------------------------------------------------------- */
+/**
+ * One hue per top-level branch, inherited by everything beneath it.
+ *
+ * This is what makes a radial map readable at a glance: colour tells you which
+ * branch a node belongs to even when it has drifted far from its parent and the
+ * connecting edge is hard to trace. Fixed hex values rather than theme tokens,
+ * because these need to stay distinguishable from each other in both light and
+ * dark mode, which a single semantic palette can't guarantee.
+ */
+export const BRANCH_PALETTE = [
+  '#7c3aed', // violet
+  '#0ea5e9', // sky
+  '#10b981', // emerald
+  '#f59e0b', // amber
+  '#ef4444', // red
+  '#ec4899', // pink
+  '#14b8a6', // teal
+  '#8b5cf6', // purple
+];
+
+/** Map every node id to the colour of the top-level branch it descends from. */
+export function branchColors(tree: MapTree): Map<string, string> {
+  const colors = new Map<string, string>();
+  const paint = (node: TreeNode, color: string) => {
+    colors.set(node.id, color);
+    node.children.forEach((c) => paint(c, color));
+  };
+  tree.nodes.forEach((root) => {
+    root.children.forEach((branch, i) =>
+      paint(branch, BRANCH_PALETTE[i % BRANCH_PALETTE.length])
+    );
+  });
+  return colors;
+}
+
 /** Ids hidden because an ancestor is collapsed. */
 export function hiddenIds(tree: MapTree, collapsed: Set<string>): Set<string> {
   const hidden = new Set<string>();

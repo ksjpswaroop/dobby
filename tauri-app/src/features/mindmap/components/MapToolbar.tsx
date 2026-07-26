@@ -4,12 +4,20 @@ import { Button } from '../../../components/ui';
 import { exportPng, exportStructured, exportSvg } from '../export';
 import { useToast } from '../../../lib/toast';
 import {
-  IconPlus, IconTrash, IconLayers, IconRefresh, IconCheck,
+  IconPlus, IconRefresh, IconCheck,
   IconZoomIn, IconZoomOut, IconArrowLeft, IconSparkles, IconFlow,
-  IconDownload, IconMindmap, IconGraph,
+  IconMindmap, IconGraph, IconNotes,
 } from '../../../lib/icons';
 
-export function MapToolbar({ projectId }: { projectId: string }) {
+type ExportFormat = 'json' | 'markdown' | 'mermaid' | 'outline' | 'png' | 'svg';
+
+interface Props {
+  projectId: string;
+  panelOpen: boolean;
+  onTogglePanel: () => void;
+}
+
+export function MapToolbar({ projectId, panelOpen, onTogglePanel }: Props) {
   const maps = useMindMapStore((s) => s.maps);
   const activeMapId = useMindMapStore((s) => s.activeMapId);
   const tree = useMindMapStore((s) => s.tree);
@@ -37,13 +45,14 @@ export function MapToolbar({ projectId }: { projectId: string }) {
   const layout = useMindMapStore((s) => s.layout);
   const setLayout = useMindMapStore((s) => s.setLayout);
   const importMap = useMindMapStore((s) => s.importMap);
+  const importOutline = useMindMapStore((s) => s.importOutline);
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState('');
   const [exporting, setExporting] = useState(false);
 
-  const doExport = async (format: 'json' | 'markdown' | 'mermaid' | 'png' | 'svg') => {
+  const doExport = async (format: ExportFormat) => {
     if (!activeMapId || !tree) return;
     try {
       setExporting(true);
@@ -58,13 +67,26 @@ export function MapToolbar({ projectId }: { projectId: string }) {
     }
   };
 
+  /**
+   * Import a dropped file. JSON is the lossless round-trip format; anything else
+   * is treated as an outline, so a `.md` written in another tool just works.
+   */
   const onPickFile = async (file: File | undefined) => {
     if (!file) return;
+    const text = await file.text().catch(() => null);
+    if (text === null) {
+      toast('Could not read that file', 'error');
+      return;
+    }
     try {
-      await importMap(projectId, JSON.parse(await file.text()));
+      if (/\.json$/i.test(file.name)) {
+        await importMap(projectId, JSON.parse(text));
+      } else {
+        await importOutline(projectId, text, file.name.replace(/\.[^.]+$/, ''));
+      }
       toast('Mind map imported', 'success');
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'Could not read that file', 'error');
+      toast(e instanceof Error ? e.message : 'Could not import that file', 'error');
     }
   };
 
@@ -190,20 +212,32 @@ export function MapToolbar({ projectId }: { projectId: string }) {
         </button>
       </div>
 
+      {/* Text view: paste an outline in, or ask for a change. */}
+      <Button
+        variant={panelOpen ? 'secondary' : 'ghost'}
+        icon={<IconNotes size={15} />}
+        onClick={onTogglePanel}
+        aria-pressed={panelOpen}
+        title="Edit as an outline, or ask AI to change the map"
+      >
+        Outline
+      </Button>
+
       <select
         className="input w-auto py-1.5 text-[13px]"
         value=""
         disabled={exporting}
         aria-label="Export mind map"
         onChange={(e) => {
-          const v = e.target.value as 'json' | 'markdown' | 'mermaid' | 'png' | 'svg';
+          const v = e.target.value as ExportFormat;
           if (v) doExport(v);
           e.target.value = '';
         }}
       >
         <option value="">Export…</option>
+        <option value="outline">Markdown outline (portable)</option>
         <option value="json">JSON (re-importable)</option>
-        <option value="markdown">Markdown outline</option>
+        <option value="markdown">Markdown document</option>
         <option value="mermaid">Mermaid</option>
         <option value="png">PNG image</option>
         <option value="svg">SVG image</option>
@@ -212,39 +246,39 @@ export function MapToolbar({ projectId }: { projectId: string }) {
       <input
         ref={fileRef}
         type="file"
-        accept="application/json,.json"
+        accept="application/json,.json,text/markdown,.md,.markdown,.txt"
         className="hidden"
         onChange={(e) => {
           onPickFile(e.target.files?.[0]);
           e.target.value = '';
         }}
       />
-      <Button variant="ghost" icon={<IconDownload size={15} />}
-              onClick={() => fileRef.current?.click()} title="Import a map from JSON">
-        Import
-      </Button>
 
-      <span className="mx-1 h-5 w-px bg-line" />
-
-      <Button variant="ghost" icon={<IconLayers size={15} />}
-              onClick={() => activeMapId && duplicateMap(activeMapId, projectId)}>
-        Duplicate
-      </Button>
-      <Button
-        variant="ghost"
-        icon={<IconTrash size={15} />}
-        onClick={() => {
-          if (activeMapId && window.confirm(`Delete “${tree?.map.title}” and all its nodes?`)) {
-            deleteMap(activeMapId, projectId);
+      {/* Map-level actions collapse into one menu — as separate buttons they
+          dominated a toolbar that is mostly about editing the current map. */}
+      <select
+        className="input w-auto py-1.5 text-[13px]"
+        value=""
+        aria-label="Mind map actions"
+        onChange={(e) => {
+          const v = e.target.value;
+          e.target.value = '';
+          if (v === 'new') createMap(projectId, 'Untitled map');
+          else if (v === 'import') fileRef.current?.click();
+          else if (v === 'duplicate' && activeMapId) duplicateMap(activeMapId, projectId);
+          else if (v === 'delete' && activeMapId) {
+            if (window.confirm(`Delete “${tree?.map.title}” and all its nodes?`)) {
+              deleteMap(activeMapId, projectId);
+            }
           }
         }}
       >
-        Delete map
-      </Button>
-      <Button variant="ghost" icon={<IconPlus size={15} />}
-              onClick={() => createMap(projectId, 'Untitled map')}>
-        New map
-      </Button>
+        <option value="">Map…</option>
+        <option value="new">New map</option>
+        <option value="import">Import a file…</option>
+        <option value="duplicate">Duplicate this map</option>
+        <option value="delete">Delete this map</option>
+      </select>
 
       <div className="ml-auto flex items-center gap-2 text-[11px] text-ink-muted">
         <span>{nodeCount} node{nodeCount === 1 ? '' : 's'}</span>

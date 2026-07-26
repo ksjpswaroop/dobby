@@ -13,7 +13,7 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { useMindMapStore } from '../store';
-import { hiddenIds, layoutTree } from '../layout';
+import { branchColors, hiddenIds, layoutTree } from '../layout';
 import { MindMapNodeCard, type MindNodeData } from './MindMapNode';
 import { useTheme } from '../../../lib/theme';
 
@@ -26,14 +26,18 @@ function CanvasInner() {
   const selectNode = useMindMapStore((s) => s.selectNode);
   const toggleCollapse = useMindMapStore((s) => s.toggleCollapse);
   const moveNode = useMindMapStore((s) => s.moveNode);
+  const toggleChecked = useMindMapStore((s) => s.toggleChecked);
   const layout = useMindMapStore((s) => s.layout);
   const { resolved } = useTheme();
 
-  const { nodes, edges } = useMemo(() => {
-    if (!tree) return { nodes: [] as Node[], edges: [] as Edge[] };
+  const { nodes, edges, colors } = useMemo(() => {
+    if (!tree) {
+      return { nodes: [] as Node[], edges: [] as Edge[], colors: new Map<string, string>() };
+    }
 
     const hidden = hiddenIds(tree, collapsed);
     const positioned = layoutTree(tree, collapsed, layout).filter((p) => !hidden.has(p.id));
+    const colors = branchColors(tree);
 
     const rfNodes: Node[] = positioned.map((p) => ({
       id: p.id,
@@ -46,13 +50,18 @@ function CanvasInner() {
         childCount: p.node.children.length,
         collapsed: collapsed.has(p.id),
         isRoot: p.depth === 0,
+        branchColor: colors.get(p.id),
+        color: p.node.color,
+        checked: !!(p.node.metadata || {}).checked,
         onToggle: toggleCollapse,
+        onToggleChecked: toggleChecked,
       } satisfies MindNodeData,
     }));
 
     const visible = new Set(positioned.map((p) => p.id));
 
-    // Hierarchy edges
+    // Hierarchy edges, tinted to their branch so a colour traces all the way out
+    // from the centre.
     const rfEdges: Edge[] = tree.flat
       .filter((n) => n.parent_id && visible.has(n.id) && visible.has(n.parent_id))
       .map((n) => ({
@@ -60,7 +69,11 @@ function CanvasInner() {
         source: n.parent_id as string,
         target: n.id,
         type: layout === 'radial' ? 'straight' : 'smoothstep',
-        style: { stroke: 'rgb(var(--line))', strokeWidth: 1.5 },
+        style: {
+          stroke: colors.get(n.id) ?? 'rgb(var(--line))',
+          strokeWidth: 1.5,
+          opacity: 0.55,
+        },
       }));
 
     // Cross-branch edges render dashed so they read differently from hierarchy
@@ -77,8 +90,8 @@ function CanvasInner() {
         })
       );
 
-    return { nodes: rfNodes, edges: rfEdges };
-  }, [tree, collapsed, selectedNodeId, toggleCollapse, layout]);
+    return { nodes: rfNodes, edges: rfEdges, colors };
+  }, [tree, collapsed, selectedNodeId, toggleCollapse, toggleChecked, layout]);
 
   const onNodeClick: NodeMouseHandler = useCallback(
     (_e, node) => selectNode(node.id),
@@ -115,7 +128,7 @@ function CanvasInner() {
         pannable
         zoomable
         maskColor="rgb(var(--surface2) / 0.6)"
-        nodeColor={() => 'rgb(var(--brand))'}
+        nodeColor={(n) => colors.get(n.id) ?? 'rgb(var(--brand))'}
         style={{ background: 'rgb(var(--surface))', border: '1px solid rgb(var(--line))' }}
       />
     </ReactFlow>
