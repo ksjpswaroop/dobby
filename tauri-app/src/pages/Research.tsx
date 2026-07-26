@@ -13,6 +13,7 @@ import { cn } from '../lib/cn';
 import { useProject } from '../lib/project';
 import { useToast } from '../lib/toast';
 import { Modal } from '../components/Modal';
+import { attachmentApi, UNREADABLE, type Attachment } from '../features/attachments/api';
 
 const RUNNING: Brief['status'][] = ['planning', 'researching', 'synthesizing'];
 
@@ -190,6 +191,10 @@ export default function Research() {
   const [proposals, setProposals] = useState<ProposedFeature[] | null>(null);
   const [picked, setPicked] = useState<Set<number>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [files, setFiles] = useState<Attachment[]>([]);
+  const [pickedFiles, setPickedFiles] = useState<Set<string>>(new Set());
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const poll = useRef<number | null>(null);
 
   const loadList = useCallback(async () => {
@@ -204,6 +209,7 @@ export default function Research() {
 
   useEffect(() => {
     loadList();
+    attachmentApi.list(projectId).then(setFiles).catch(() => {});
     researchApi.providers().then((p) =>
       setProvider({
         active: p.active,
@@ -251,11 +257,13 @@ export default function Research() {
     if (!topic.trim()) return;
     setBusy(true);
     try {
-      const b = await researchApi.create(projectId, topic.trim(), context.trim());
+      const b = await researchApi.create(projectId, topic.trim(), context.trim(),
+                                         [...pickedFiles]);
       await researchApi.run(b.id);
       setCreating(false);
       setTopic('');
       setContext('');
+      setPickedFiles(new Set());
       await loadList();
       await open(b.id);
       toast('Research started', 'success');
@@ -607,6 +615,90 @@ export default function Research() {
               onChange={(e) => setContext(e.target.value)}
             />
           </div>
+          <div>
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-[12px] font-medium text-ink">
+                Source documents <span className="text-ink-muted">(optional)</span>
+              </span>
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="text-[11px] font-medium text-brand hover:underline"
+              >
+                {uploading ? 'Uploading…' : '+ Add a file'}
+              </button>
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              className="hidden"
+              accept=".pdf,.txt,.md,.markdown,.csv,.json,.html,.rst,.docx,.rtf"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                e.target.value = '';
+                if (!f) return;
+                setUploading(true);
+                try {
+                  const a = await attachmentApi.upload(projectId, f);
+                  setFiles((prev) => [a, ...prev]);
+                  if (UNREADABLE.includes(a.extract_mode)) {
+                    toast(a.note || 'Stored, but no text could be read', 'error');
+                  } else {
+                    setPickedFiles((p) => new Set(p).add(a.id));
+                    toast(`Added ${a.filename} — ${a.chars.toLocaleString()} characters`,
+                          'success');
+                  }
+                } catch (err) {
+                  toast(err instanceof Error ? err.message : 'Upload failed', 'error');
+                } finally {
+                  setUploading(false);
+                }
+              }}
+            />
+            {files.length === 0 ? (
+              <p className="text-[11px] text-ink-muted">
+                A PDF, spec or transcript becomes source material the research works from.
+              </p>
+            ) : (
+              <ul className="max-h-28 space-y-1 overflow-y-auto">
+                {files.map((f) => {
+                  const unreadable = UNREADABLE.includes(f.extract_mode);
+                  return (
+                    <li key={f.id}>
+                      <label
+                        className={cn(
+                          'flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5',
+                          unreadable ? 'border-line opacity-60' : 'border-line hover:border-brand'
+                        )}
+                        title={f.note || undefined}
+                      >
+                        <input
+                          type="checkbox"
+                          disabled={unreadable}
+                          checked={pickedFiles.has(f.id)}
+                          onChange={() =>
+                            setPickedFiles((p) => {
+                              const n = new Set(p);
+                              n.has(f.id) ? n.delete(f.id) : n.add(f.id);
+                              return n;
+                            })
+                          }
+                        />
+                        <span className="min-w-0 flex-1 truncate text-[12px] text-ink">
+                          {f.filename}
+                        </span>
+                        <span className="shrink-0 text-[10px] text-ink-muted">
+                          {unreadable ? (f.extract_mode === 'needs_ocr' ? 'no text layer'
+                                                                       : 'unreadable')
+                                      : `${f.chars.toLocaleString()} chars`}
+                        </span>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
           <p className="text-[11px] text-ink-muted">
             Five tracks run in parallel. This takes a few minutes on a local model.
             {provider.remote && (

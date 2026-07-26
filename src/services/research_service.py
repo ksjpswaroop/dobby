@@ -212,7 +212,8 @@ def _search_config() -> Tuple[str, Dict[str, str]]:
 # Persistence
 # ---------------------------------------------------------------------------
 def create_brief(db: DatabaseManager, project_id: str, topic: str,
-                 context: str = "") -> Dict[str, Any]:
+                 context: str = "",
+                 attachment_ids: Optional[List[str]] = None) -> Dict[str, Any]:
     topic = (topic or "").strip()
     if not topic:
         raise ResearchError("Give the research a topic.")
@@ -226,6 +227,7 @@ def create_brief(db: DatabaseManager, project_id: str, topic: str,
             id=brief_id, project_id=project_id, topic=topic[:500],
             context=(context or "")[:4000], status="pending",
             search_provider=provider,
+            extra_metadata={"attachment_ids": attachment_ids or []},
         ))
         for i, kind in enumerate(TRACK_KINDS):
             s.add(ResearchTrack(id=str(uuid.uuid4()), brief_id=brief_id,
@@ -254,6 +256,7 @@ def get_brief(db: DatabaseManager, brief_id: str) -> Optional[Dict[str, Any]]:
             "error": b.error, "run_id": b.run_id,
             "created_at": b.created_at.isoformat() if b.created_at else None,
             "audit": (b.extra_metadata or {}).get("audit"),
+            "extra_metadata": b.extra_metadata or {},
             "tracks": [{
                 "kind": t.kind, "label": TRACK_LABELS.get(t.kind, t.kind),
                 "status": t.status, "content": t.content,
@@ -524,9 +527,24 @@ async def run_brief(db: DatabaseManager, brief_id: str) -> Dict[str, Any]:
     try:
         # 1. Plan
         tracer.event("plan.start", "Planning the research")
+        # Attached documents are the user's own source material, so they carry
+        # more weight than anything the model recalls. They go into the plan,
+        # which every track then works from.
+        from src.services import attachment_service as att
+
+        attached = att.context_block(
+            project_id,
+            (brief.get("extra_metadata") or {}).get("attachment_ids") or [],
+        )
+        user_context = brief["context"]
+        if attached:
+            user_context = (user_context + "\n\nSource documents the user "
+                            "provided:\n" + attached).strip()
+            tracer.event("attachments.loaded", f"{len(attached)} chars of source material")
+
         plan = await _ask(
             client,
-            P.plan_prompt(topic, brief["context"], _project_context(db, project_id)),
+            P.plan_prompt(topic, user_context, _project_context(db, project_id)),
             max_tokens=1200, temperature=0.4,
         )
         _set_brief(db, brief_id, plan=plan.strip(), status="researching")

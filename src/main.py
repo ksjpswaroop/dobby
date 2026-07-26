@@ -228,6 +228,10 @@ app.include_router(research_router)
 from src.api.inbox_routes import router as inbox_router
 app.include_router(inbox_router)
 
+# Include attachment routes (local files as source material)
+from src.api.attachment_routes import router as attachment_router
+app.include_router(attachment_router)
+
 # Include MCP routes (external tool servers)
 from src.api.mcp_routes import router as mcp_router
 app.include_router(mcp_router)

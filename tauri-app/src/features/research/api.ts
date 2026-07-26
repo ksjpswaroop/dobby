@@ -125,8 +125,10 @@ export const researchApi = {
   list: (projectId: string) =>
     req<{ briefs: BriefSummary[] }>('GET', `/project/${projectId}`).then((r) => r.briefs),
 
-  create: (projectId: string, topic: string, context = '') =>
-    req<Brief>('POST', '', { project_id: projectId, topic, context }),
+  create: (projectId: string, topic: string, context = '', attachmentIds: string[] = []) =>
+    req<Brief>('POST', '', {
+      project_id: projectId, topic, context, attachment_ids: attachmentIds,
+    }),
 
   get: (briefId: string) => req<Brief>('GET', `/${briefId}`),
 

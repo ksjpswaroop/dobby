@@ -31,6 +31,7 @@ class BriefCreate(BaseModel):
     project_id: str
     topic: str = Field(..., min_length=1, max_length=500)
     context: str = ""
+    attachment_ids: List[str] = Field(default_factory=list)
 
 
 class FeatureItem(BaseModel):
@@ -74,7 +75,8 @@ async def list_briefs(project_id: str, db: DatabaseManager = Depends(get_db)):
 @router.post("")
 async def create_brief(req: BriefCreate, db: DatabaseManager = Depends(get_db)):
     try:
-        return svc.create_brief(db, req.project_id, req.topic, req.context)
+        return svc.create_brief(db, req.project_id, req.topic, req.context,
+                                req.attachment_ids)
     except svc.ResearchError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
