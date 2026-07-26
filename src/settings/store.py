@@ -38,6 +38,15 @@ class Settings:
     verification_threshold: float = 85.0
     app_version: str = APP_VERSION
 
+    # Research web search. Defaults to "none" so the app keeps its promise of
+    # making no network calls beyond the local model unless the user opts in.
+    # "searxng" can be self-hosted and stays local; tavily/brave send queries
+    # to a third party, which the UI states before enabling them.
+    search_provider: str = "none"  # none | searxng | tavily | brave
+    searxng_url: str = ""
+    tavily_api_key: str = ""
+    brave_api_key: str = ""
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 

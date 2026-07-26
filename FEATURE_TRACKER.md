@@ -58,6 +58,15 @@ Phases follow `docs/expansion/04_ROADMAP_AND_PROJECT_PLAN.md`.
 | 3.8 | **Branch colour + checkboxes** | ✅ | *new* — colour inherited through nodes and edges |
 | 3.9 | Document → mind map | ✅ | *new* — generated specs are already heading markdown |
 
+### Research (new — sits before Create)
+| # | Feature | State | Notes |
+|---|---|---|---|
+| 5.1 | Five-track research (product, market, competition, business, technical) | ✅ | Tracks run concurrently; ~4 min on llama3.2 |
+| 5.2 | Pluggable web search, default off | ✅ | `none` / `searxng` (local) / `tavily` / `brave`; remote ones labelled in the UI |
+| 5.3 | Fabricated-statistic backstop | ✅ | Unsourced figures auto-tagged `[unverified]` — prompt instructions alone proved insufficient |
+| 5.4 | Research → backlog hand-off | ✅ | Findings become scored feature proposals; user picks before anything is written |
+| 5.5 | Traced through Logs & Traces | ✅ | Reuses the existing `Tracer` + SSE channel |
+
 ### Platform
 | # | Feature | State | Notes |
 |---|---|---|---|

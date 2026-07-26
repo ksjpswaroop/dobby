@@ -152,6 +152,10 @@ app.include_router(search_router)
 from src.api.mindmap_routes import router as mindmap_router
 app.include_router(mindmap_router)
 
+# Include research routes (the stage before Create)
+from src.api.research_routes import router as research_router
+app.include_router(research_router)
+
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])

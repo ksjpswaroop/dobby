@@ -87,6 +87,10 @@ export interface AppSettings {
   theme: 'system' | 'light' | 'dark';
   verification_threshold: number;
   app_version: string;
+  search_provider: string;
+  searxng_url: string;
+  tavily_api_key: string;
+  brave_api_key: string;
 }
 
 export interface SettingsUpdate {
@@ -94,6 +98,10 @@ export interface SettingsUpdate {
   model?: string;
   theme?: 'system' | 'light' | 'dark';
   verification_threshold?: number;
+  search_provider?: string;
+  searxng_url?: string;
+  tavily_api_key?: string;
+  brave_api_key?: string;
 }
 
 export interface ModelInfo {

@@ -296,3 +296,11 @@ export const IconMindmap = (p: IconProps) => (
     <path d="M7.3 11 15.7 7M7.3 13l8.4 4" />
   </Icon>
 );
+/** A magnifier over a document — investigation, not the app-wide Search. */
+export const IconResearch = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M14.5 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8.5" />
+    <circle cx="16.5" cy="6.5" r="3.5" />
+    <path d="M19.2 9.2 22 12M8 14h5M8 17.5h7" />
+  </Icon>
+);

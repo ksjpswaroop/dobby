@@ -4,7 +4,7 @@ import {
   IconAudio, IconYouTube, IconNotes,
   IconCommand, IconSkill, IconFlow,
   IconTerminal, IconLogs, IconControl, IconSearch, IconSettings,
-  IconMarket, IconSparkles,
+  IconMarket, IconSparkles, IconResearch,
 } from './icons';
 
 export type NavStatus = 'live' | 'planned';
@@ -29,8 +29,13 @@ export interface NavSection {
 }
 
 /**
- * Five verbs, not fifteen links. Each primary destination owns a small set of
- * in-page tabs (OpenWorker's "app-in-app" pattern), so the sidebar stays calm.
+ * A handful of verbs, not fifteen links. Each primary destination owns a small
+ * set of in-page tabs (OpenWorker's "app-in-app" pattern), so the sidebar stays
+ * calm.
+ *
+ * Order is the workflow: understand the space (Ideate), find out what is true
+ * about it (Research), then build (Create). Research sits before Create because
+ * its output — findings promoted into the backlog — is Create's input.
  */
 export const NAV_SECTIONS: NavSection[] = [
   {
@@ -44,6 +49,15 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Backlog', route: '/backlog', icon: IconBacklog, status: 'live' },
       { label: 'Graph', route: '/graph', icon: IconGraph, status: 'live' },
       { label: 'Mind Map', route: '/mindmap', icon: IconMindmap, status: 'live' },
+    ],
+  },
+  {
+    label: 'Research',
+    route: '/research',
+    icon: IconResearch,
+    hint: 'Find out what is true before you build it',
+    items: [
+      { label: 'Briefs', route: '/research', icon: IconResearch, status: 'live' },
     ],
   },
   {

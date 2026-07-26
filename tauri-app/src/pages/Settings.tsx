@@ -13,7 +13,20 @@ import {
   IconSun,
   IconMoon,
   IconMonitor,
+  IconResearch,
 } from '../lib/icons';
+
+/** Search backends for the Research stage. `remote` = the query leaves the machine. */
+const SEARCH_PROVIDERS: { id: string; label: string; blurb: string; remote: boolean }[] = [
+  { id: 'none', label: 'Off', remote: false,
+    blurb: 'Model knowledge only. No network calls. Unsourced claims are flagged.' },
+  { id: 'searxng', label: 'SearXNG', remote: false,
+    blurb: 'Your own instance — stays on your machine or network.' },
+  { id: 'tavily', label: 'Tavily', remote: true,
+    blurb: 'Hosted search built for AI agents. Needs an API key.' },
+  { id: 'brave', label: 'Brave Search', remote: true,
+    blurb: 'Independent index. Needs an API key.' },
+];
 
 function formatBytes(bytes?: number): string {
   if (!bytes) return '—';
@@ -67,6 +80,8 @@ export default function Settings() {
   const [host, setHost] = useState('');
   const [savingHost, setSavingHost] = useState(false);
   const [threshold, setThreshold] = useState(85);
+  const [searchProvider, setSearchProvider] = useState('none');
+  const [searxngUrl, setSearxngUrl] = useState('');
 
   const [pullName, setPullName] = useState('');
   const [pulling, setPulling] = useState(false);
@@ -83,6 +98,8 @@ export default function Settings() {
       setSystem(sys);
       setHost(s.ollama_host);
       setThreshold(s.verification_threshold);
+      setSearchProvider(s.search_provider || 'none');
+      setSearxngUrl(s.searxng_url || '');
       loadModels();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load settings');
@@ -129,6 +146,17 @@ export default function Settings() {
       setSettings(s);
     } catch {
       /* silent — non-critical */
+    }
+  };
+
+  const saveSearch = async (patch: Parameters<typeof api.updateSettings>[0]) => {
+    if (patch.search_provider) setSearchProvider(patch.search_provider);
+    if (patch.searxng_url !== undefined) setSearxngUrl(patch.searxng_url);
+    try {
+      setSettings(await api.updateSettings(patch));
+      toast('Search settings saved', 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed to save', 'error');
     }
   };
 
@@ -336,6 +364,80 @@ export default function Settings() {
             className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-surface2 accent-brand"
           />
           <span className="w-12 text-right text-lg font-semibold text-brand">{threshold}</span>
+        </div>
+      </Section>
+
+      {/* Research search */}
+      <Section
+        icon={<IconResearch size={18} />}
+        title="Research search"
+        description="Where the Research stage looks things up. Off by default — Dobby makes no network calls beyond your local model unless you turn this on."
+      >
+        <div className="space-y-3">
+          <div className="grid gap-2 sm:grid-cols-2">
+            {SEARCH_PROVIDERS.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => saveSearch({ search_provider: p.id })}
+                aria-pressed={searchProvider === p.id}
+                className={
+                  'rounded-xl border px-3 py-2.5 text-left transition-colors ' +
+                  (searchProvider === p.id
+                    ? 'border-brand bg-brand/5'
+                    : 'border-line hover:border-brand/50')
+                }
+              >
+                <span className="flex items-center gap-1.5 text-sm font-medium text-ink">
+                  {p.label}
+                  {p.remote && (
+                    <span className="rounded px-1 py-px text-[10px] uppercase tracking-wide text-warning ring-1 ring-warning/40">
+                      leaves device
+                    </span>
+                  )}
+                </span>
+                <span className="mt-0.5 block text-[11px] text-ink-muted">{p.blurb}</span>
+              </button>
+            ))}
+          </div>
+
+          {searchProvider === 'searxng' && (
+            <label className="block">
+              <span className="mb-1 block text-[12px] font-medium text-ink">SearXNG URL</span>
+              <input
+                className="input w-full"
+                placeholder="http://localhost:8888"
+                defaultValue={searxngUrl}
+                onBlur={(e) => saveSearch({ searxng_url: e.target.value.trim() })}
+              />
+            </label>
+          )}
+          {(searchProvider === 'tavily' || searchProvider === 'brave') && (
+            <label className="block">
+              <span className="mb-1 block text-[12px] font-medium text-ink">
+                {searchProvider === 'tavily' ? 'Tavily' : 'Brave Search'} API key
+              </span>
+              <input
+                type="password"
+                className="input w-full"
+                placeholder="Paste your key"
+                onBlur={(e) => {
+                  const v = e.target.value.trim();
+                  if (v) {
+                    saveSearch(
+                      searchProvider === 'tavily'
+                        ? { tavily_api_key: v }
+                        : { brave_api_key: v }
+                    );
+                    e.target.value = '';
+                  }
+                }}
+              />
+              <span className="mt-1 block text-[11px] text-ink-muted">
+                Stored locally in ~/.dobby/settings.json. Search queries are sent to
+                this provider.
+              </span>
+            </label>
+          )}
         </div>
       </Section>
 
