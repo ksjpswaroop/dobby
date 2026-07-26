@@ -5,6 +5,7 @@ import { useTheme, type Theme } from '../lib/theme';
 import { useProject } from '../lib/project';
 import { NAV_SECTIONS, sectionForRoute } from '../lib/nav';
 import { CommandPalette } from './CommandPalette';
+import { TerminalDock } from './TerminalDock';
 import api, { type SystemInfo, type ProjectInfo } from '../api/client';
 import {
   IconFolder,
@@ -15,6 +16,7 @@ import {
   IconSun,
   IconMoon,
   IconMonitor,
+  IconTerminal,
 } from '../lib/icons';
 
 /* -------------------------------------------------------------------------- */
@@ -249,6 +251,17 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const version = '2.0';
   const { pathname } = useLocation();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  // The terminal is a dock, not a page: remembered across reloads so it is
+  // where you left it.
+  const [terminalOpen, setTerminalOpen] = useState(
+    () => localStorage.getItem('dobby-terminal-open') === '1'
+  );
+
+  const toggleTerminal = () =>
+    setTerminalOpen((v) => {
+      localStorage.setItem('dobby-terminal-open', v ? '0' : '1');
+      return !v;
+    });
 
   // A sidebar verb is active when the current route is one of its sub-surfaces.
   const isSectionActive = (
@@ -262,6 +275,14 @@ export default function AppShell({ children }: { children: ReactNode }) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setPaletteOpen((v) => !v);
+      }
+      // Ctrl+` — what every editor uses for its integrated terminal.
+      if ((e.metaKey || e.ctrlKey) && (e.key === '`' || e.key === '~')) {
+        e.preventDefault();
+        setTerminalOpen((v) => {
+          localStorage.setItem('dobby-terminal-open', v ? '0' : '1');
+          return !v;
+        });
       }
     };
     window.addEventListener('keydown', onKey);
@@ -311,6 +332,20 @@ export default function AppShell({ children }: { children: ReactNode }) {
           <ProjectSwitcher />
           <div className="flex items-center gap-3">
             <CommandTrigger onOpen={() => setPaletteOpen(true)} />
+            <button
+              onClick={toggleTerminal}
+              aria-pressed={terminalOpen}
+              title="Terminal (⌃`)"
+              aria-label="Toggle the terminal"
+              className={
+                'flex h-8 w-8 items-center justify-center rounded-xl transition-colors ' +
+                (terminalOpen
+                  ? 'bg-brand/10 text-brand'
+                  : 'text-ink-muted hover:bg-surface2 hover:text-ink')
+              }
+            >
+              <IconTerminal size={15} />
+            </button>
             <StatusPill />
             <ThemeToggle />
           </div>
@@ -321,6 +356,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <main className="flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-6xl animate-fade-in px-6 py-8">{children}</div>
         </main>
+
+        <TerminalDock open={terminalOpen} onClose={toggleTerminal} />
       </div>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />

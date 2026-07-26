@@ -108,7 +108,6 @@ export const NAV_SECTIONS: NavSection[] = [
     icon: IconTerminal,
     hint: 'Terminal, traces, and search across everything',
     items: [
-      { label: 'Terminal', route: '/terminal', icon: IconTerminal, status: 'live' },
       { label: 'Logs & Traces', route: '/logs', icon: IconLogs, status: 'live' },
       { label: 'Search', route: '/search', icon: IconSearch, status: 'live' },
     ],

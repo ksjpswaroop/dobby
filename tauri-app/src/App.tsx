@@ -6,7 +6,6 @@ import Documents from './pages/Documents';
 import Research from './pages/Research';
 import Automations from './pages/Automations';
 import Inbox from './pages/Inbox';
-import TerminalPage from './pages/Terminal';
 import Connections from './pages/Connections';
 import Wizard from './pages/Wizard';
 import Yolo from './pages/Yolo';
@@ -37,7 +36,8 @@ function App() {
         <Route path="/research" element={<Research />} />
         <Route path="/automations" element={<Automations />} />
         <Route path="/inbox" element={<Inbox />} />
-        <Route path="/terminal" element={<TerminalPage />} />
+        {/* The terminal is a bottom dock now (⌃`), not a page. */}
+        <Route path="/terminal" element={<Navigate to="/logs" replace />} />
         <Route path="/connections" element={<Connections />} />
         <Route path="/backlog" element={<BacklogPage />} />
         <Route path="/wizard" element={<Wizard />} />
