@@ -106,6 +106,11 @@ def get_token_manager() -> TokenManager:
 def is_open_path(path: str) -> bool:
     if path in OPEN_PATHS:
         return True
+    # Inbound webhooks come from Slack/Telegram, which cannot hold a launch
+    # token. They are authenticated instead by provider signature, which is
+    # checked before the payload is parsed — see src/connectors/base.py.
+    if path.startswith("/api/v1/messaging/") and path.endswith("/webhook"):
+        return True
     # FastAPI's docs pull static assets from this prefix.
     return path.startswith("/docs") or path.startswith("/redoc")
 

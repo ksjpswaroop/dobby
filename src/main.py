@@ -238,6 +238,10 @@ app.include_router(research_router)
 from src.api.inbox_routes import router as inbox_router
 app.include_router(inbox_router)
 
+# Include messaging routes (Slack / Telegram connectors)
+from src.api.messaging_routes import router as messaging_router
+app.include_router(messaging_router)
+
 # Include transcription routes (local speech-to-text)
 from src.api.transcription_routes import router as transcription_router
 app.include_router(transcription_router)
