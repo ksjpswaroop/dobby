@@ -26,13 +26,14 @@ function CanvasInner() {
   const selectNode = useMindMapStore((s) => s.selectNode);
   const toggleCollapse = useMindMapStore((s) => s.toggleCollapse);
   const moveNode = useMindMapStore((s) => s.moveNode);
+  const layout = useMindMapStore((s) => s.layout);
   const { resolved } = useTheme();
 
   const { nodes, edges } = useMemo(() => {
     if (!tree) return { nodes: [] as Node[], edges: [] as Edge[] };
 
     const hidden = hiddenIds(tree, collapsed);
-    const positioned = layoutTree(tree, collapsed).filter((p) => !hidden.has(p.id));
+    const positioned = layoutTree(tree, collapsed, layout).filter((p) => !hidden.has(p.id));
 
     const rfNodes: Node[] = positioned.map((p) => ({
       id: p.id,
@@ -58,7 +59,7 @@ function CanvasInner() {
         id: `h-${n.id}`,
         source: n.parent_id as string,
         target: n.id,
-        type: 'smoothstep',
+        type: layout === 'radial' ? 'straight' : 'smoothstep',
         style: { stroke: 'rgb(var(--line))', strokeWidth: 1.5 },
       }));
 
@@ -77,7 +78,7 @@ function CanvasInner() {
       );
 
     return { nodes: rfNodes, edges: rfEdges };
-  }, [tree, collapsed, selectedNodeId, toggleCollapse]);
+  }, [tree, collapsed, selectedNodeId, toggleCollapse, layout]);
 
   const onNodeClick: NodeMouseHandler = useCallback(
     (_e, node) => selectNode(node.id),
@@ -94,6 +95,7 @@ function CanvasInner() {
 
   return (
     <ReactFlow
+      aria-label="Mind map canvas. Use the toolbar to add nodes; arrow keys pan."
       nodes={nodes}
       edges={edges}
       nodeTypes={nodeTypes}

@@ -343,3 +343,108 @@ class TestMindMapAI:
         svc.restore_snapshot(db, a_map["id"], snapshot_id)
         titles = [n["title"] for n in svc.get_map_tree(db, a_map["id"])["flat"]]
         assert "Keep me" in titles, "restore must resurrect deleted nodes"
+
+
+# ---------------------------------------------------------------------------
+# Export / import (Phase 3)
+# ---------------------------------------------------------------------------
+class TestExportImport:
+    def _sample(self, db, a_map):
+        theme = svc.create_node(db, a_map["id"], "Onboarding", a_map["root_node_id"],
+                                "Feature", description="First run")
+        svc.create_node(db, a_map["id"], "Streak setup", theme["id"], "Idea")
+        return theme
+
+    def test_json_roundtrip_preserves_structure(self, db, a_map):
+        from src.services import mindmap_export as ex
+
+        self._sample(db, a_map)
+        payload = ex.export_json(db, a_map["id"])
+        assert payload["format"] == "dobby.mindmap"
+
+        result = ex.import_json(db, PROJECT, payload)
+        assert result["success"] is True
+
+        original = svc.get_map_tree(db, a_map["id"])
+        copy = svc.get_map_tree(db, result["map_id"])
+        assert len(copy["flat"]) == len(original["flat"])
+        assert sorted(n["title"] for n in copy["flat"]) == \
+               sorted(n["title"] for n in original["flat"])
+        # fresh ids — an import must never collide with the source
+        assert not {n["id"] for n in copy["flat"]} & {n["id"] for n in original["flat"]}
+
+    def test_markdown_outline_shape(self, db, a_map):
+        from src.services import mindmap_export as ex
+
+        self._sample(db, a_map)
+        md = ex.export_markdown(db, a_map["id"])
+        assert md.startswith("# Test map")
+        assert "## Onboarding" in md          # top-level themes become H2
+        assert "- **Streak setup**" in md      # deeper nodes become bullets
+
+    def test_mermaid_is_valid_mindmap_syntax(self, db, a_map):
+        from src.services import mindmap_export as ex
+
+        self._sample(db, a_map)
+        mm = ex.export_mermaid(db, a_map["id"])
+        lines = mm.splitlines()
+        assert lines[0] == "mindmap"
+        assert lines[1].strip().startswith("root((")
+        assert any("Onboarding" in l for l in lines)
+
+    def test_mermaid_strips_breaking_characters(self, db, a_map):
+        from src.services import mindmap_export as ex
+
+        svc.create_node(db, a_map["id"], "Auth (OAuth) [beta]", a_map["root_node_id"])
+        mm = ex.export_mermaid(db, a_map["id"])
+        body = "\n".join(mm.splitlines()[2:])
+        # brackets would break Mermaid node labels
+        assert "(" not in body and "[" not in body
+        assert "Auth OAuth beta" in body
+
+    def test_import_rejects_missing_nodes(self, db):
+        from src.services import mindmap_export as ex
+
+        with pytest.raises(ex.ImportError_, match="nodes"):
+            ex.import_json(db, PROJECT, {"map": {"title": "x"}})
+
+    def test_import_rejects_missing_title(self, db):
+        from src.services import mindmap_export as ex
+
+        with pytest.raises(ex.ImportError_, match="title"):
+            ex.import_json(db, PROJECT, {"nodes": [{"id": "a"}]})
+
+    def test_import_rejects_dangling_parent(self, db):
+        from src.services import mindmap_export as ex
+
+        with pytest.raises(ex.ImportError_, match="missing parent"):
+            ex.import_json(db, PROJECT, {
+                "nodes": [{"id": "a", "title": "A", "parent_id": "ghost"}]
+            })
+
+    def test_import_rejects_a_cycle(self, db):
+        from src.services import mindmap_export as ex
+
+        with pytest.raises(ex.ImportError_, match="cycle"):
+            ex.import_json(db, PROJECT, {
+                "nodes": [
+                    {"id": "a", "title": "A", "parent_id": "b"},
+                    {"id": "b", "title": "B", "parent_id": "a"},
+                ]
+            })
+
+    def test_export_endpoints_over_http(self, client, db, a_map):
+        self._sample(db, a_map)
+        mid = a_map["id"]
+
+        assert client.get(f"/api/v1/mindmaps/map/{mid}/export/json").status_code == 200
+        md = client.get(f"/api/v1/mindmaps/map/{mid}/export/markdown")
+        assert md.status_code == 200 and md.text.startswith("# ")
+        mm = client.get(f"/api/v1/mindmaps/map/{mid}/export/mermaid")
+        assert mm.status_code == 200 and mm.text.startswith("mindmap")
+
+    def test_bad_import_returns_400_with_reason(self, client):
+        r = client.post(f"/api/v1/mindmaps/import/{PROJECT}",
+                        json={"data": {"nodes": [{"id": "a"}]}})
+        assert r.status_code == 400
+        assert "title" in r.json()["detail"]

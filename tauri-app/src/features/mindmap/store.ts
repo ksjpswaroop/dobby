@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { mindmapApi } from './api';
 import type { MapTree, MindMap } from './types';
 import type { ProposedTree } from './api';
+import type { LayoutMode } from './layout';
 
 const UNDO_DEPTH = 50;
 
@@ -49,6 +50,11 @@ interface MindMapState {
   aiRegroup: () => Promise<void>;
   aiApplyRegroup: () => Promise<void>;
   dismissProposal: () => void;
+
+  // Phase 3
+  layout: LayoutMode;
+  setLayout: (m: LayoutMode) => void;
+  importMap: (projectId: string, data: unknown) => Promise<void>;
 }
 
 export const useMindMapStore = create<MindMapState>((set, get) => {
@@ -115,6 +121,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => {
     error: null,
     aiBusy: null,
     proposal: null,
+    layout: (localStorage.getItem('dobby-mindmap-layout') as LayoutMode) || 'tree',
 
     async loadMaps(projectId) {
       set({ loading: true, error: null });
@@ -328,6 +335,24 @@ export const useMindMapStore = create<MindMapState>((set, get) => {
 
     dismissProposal() {
       set({ proposal: null });
+    },
+
+    setLayout(m) {
+      localStorage.setItem('dobby-mindmap-layout', m);
+      set({ layout: m });
+    },
+
+    async importMap(projectId, data) {
+      set({ loading: true, error: null });
+      try {
+        const r = await mindmapApi.importMap(projectId, data);
+        await get().loadMaps(projectId);
+        await get().selectMap(r.map_id);
+      } catch (e) {
+        set({ error: e instanceof Error ? e.message : 'Import failed' });
+      } finally {
+        set({ loading: false });
+      }
     },
 
     async undo() {

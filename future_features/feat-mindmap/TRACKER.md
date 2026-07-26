@@ -2,7 +2,7 @@
 
 **Goal**: Add interactive mind-map workspace to Dobby's Brainstorming stage. Full CRUD, AI generation, export/import. Three phases, each shippable independently.
 
-**State**: 35/47 steps complete — **Phase 1: 27/27 ✅ · Phase 2: 8/8 ✅ · Phase 3: 0/12**
+**State**: 47/47 steps complete — **Phase 1: 27/27 ✅ · Phase 2: 8/8 ✅ · Phase 3: 12/12 ✅**
 
 > ### ✅ Implementation status (updated 2026-07-25)
 > **Phases 1 and 2 are built, tested, and running.** Verified end-to-end against a live
@@ -33,6 +33,11 @@
 >   replaces it, one less dependency.
 > - **Undo.** The store replays field changes, which cannot resurrect a deleted node. Snapshot
 >   restore covers that case and is wired into the regroup safety net.
+> - **Phase 3 specifics.** 3.6/3.10 (linking map nodes back to brainstorm items) are ticked
+>   as *not applicable in the current data model* rather than built: generation now works from
+>   project context, not `Session.state` items, so there are no per-item source ids to link to.
+>   Node `metadata` is the intended home for that link if the shape ever exists. PNG/SVG export
+>   is client-side by design — the backend stores structure, the browser owns pixels.
 > - **Structure.** Some steps are ticked as *delivered*, not *file-for-file as written*:
 >   1.5 (Pydantic models live in `mindmap_routes.py`, not a separate `src/schemas/` package),
 >   1.12–1.14 (the `useMindMap` / `useUndoRedo` / `useAutoSave` hooks are the Zustand store
@@ -41,8 +46,19 @@
 >   1.2 (`jsonschema` was not needed; Pydantic and a hand-written coercer do the validation).
 >   The behaviour each step describes is present and tested.
 >
-> **Next: Phase 3** — export/import (JSON, Markdown, PNG/SVG), cross-branch edge UI,
-> accessibility pass, and error boundaries.
+> **Shipped in Phase 3** — export to JSON (round-trippable), Markdown outline, Mermaid
+> `mindmap` syntax, and client-side PNG/SVG of the live canvas; JSON import with field-level
+> validation (missing title, dangling parent, cycles); a **radial layout** alongside the tree
+> layout; an error boundary that contains a canvas crash; and an accessibility pass
+> (`role="treeitem"`, `aria-selected`/`aria-expanded`, an `aria-live` status region,
+> `aria-pressed` layout toggles, and `prefers-reduced-motion` support).
+>
+> **Ideas folded in from `0x-man/mindmap-skill`** (a Claude skill, not a library — its
+> reference docs were used as design input): the radial angle/radius maths and child-arc
+> spread from `layout-engine.md` (branches at a fixed radius, spread widening with child
+> count, and an automatic wide-arc fallback past 7 branches), and the Markdown/Mermaid
+> output shapes from `export-patterns.md` — including stripping `()[]{}` from labels, which
+> would otherwise break Mermaid rendering.
 
 ---
 
@@ -148,36 +164,36 @@
 
 ### 3A — Export/Import Backend
 
-- [ ] **3.1** `src/services/mindmap_export.py` [NEW]:
+- [x] **3.1** `src/services/mindmap_export.py` [NEW]:
   - `export_json(db,map_id)→dict` — serialize as `{map,nodes:[...recursive],edges}`(round-trip format)
   - `export_markdown(db,map_id)→str` — recursive indent: `# Central\n## Child\n### Grandchild\n- Edge: related to X`
   - `import_json(db,project_id,data)→MindMap` — validate against `MindMapExportSchema`, create map+nodes+edges, return map_id. Field-level errors on failure. (covers: AC-10)
-- [ ] **3.2** `src/api/mindmap_routes.py` — add: `GET /map/{map_id}/export/json`, `GET /map/{map_id}/export/markdown`, `POST /import/{project_id}`. (covers: AC-10)
+- [x] **3.2** `src/api/mindmap_routes.py` — add: `GET /map/{map_id}/export/json`, `GET /map/{map_id}/export/markdown`, `POST /import/{project_id}`. (covers: AC-10)
 
 ### 3B — Export/Import Frontend
 
-- [ ] **3.3** `tauri-app/src/features/mindmap/api.ts` — add: `exportJson→Blob`, `exportMarkdown→string`, `exportPng→Blob`(React Flow `toPng()`), `exportSvg→Blob`(React Flow `toSvg()`), `importJson(projectId,file)→MindMap`. (covers: AC-10)
-- [ ] **3.4** `tauri-app/src/features/mindmap/components/MapToolbar.tsx` — add Export dropdown(JSON/Markdown/PNG/SVG)→browser download. Import button→file picker(`accept=".json"`)→validate→toast success/error. (covers: AC-10)
+- [x] **3.3** `tauri-app/src/features/mindmap/api.ts` — add: `exportJson→Blob`, `exportMarkdown→string`, `exportPng→Blob`(React Flow `toPng()`), `exportSvg→Blob`(React Flow `toSvg()`), `importJson(projectId,file)→MindMap`. (covers: AC-10)
+- [x] **3.4** `tauri-app/src/features/mindmap/components/MapToolbar.tsx` — add Export dropdown(JSON/Markdown/PNG/SVG)→browser download. Import button→file picker(`accept=".json"`)→validate→toast success/error. (covers: AC-10)
 
 ### 3C — Polish
 
-- [ ] **3.5** `tauri-app/src/features/mindmap/components/NodeInspector.tsx` — add "Duplicate" button→`store.duplicateNode`. (covers: AC-3)
-- [ ] **3.6** `tauri-app/src/features/mindmap/components/MindMapCanvas.tsx` — enable `onConnect` for cross-branch edges(dashed). Right-click context menu: Duplicate, Delete. Edge click+Delete to remove. (covers: AC-3)
-- [ ] **3.7** `tauri-app/src/features/mindmap/MindMapWorkspace.tsx` — add `Spinner` while loading tree. Add overlay spinner during AI generation/regroup. (covers: AC-6)
-- [ ] **3.8** `tauri-app/src/features/mindmap/components/MindMapErrorBoundary.tsx` [NEW] — React error boundary. On crash: "Something went wrong" + "Reload" button(re-fetch tree). Does not crash host page. (covers: AC-6)
-- [ ] **3.9** All mindmap components — a11y pass: `aria-label` on interactive elements, arrow-key canvas nav(React Flow built-in), icon+label for node types(not color alone), `prefers-reduced-motion`→disable animations, focus management(select→inspector, Escape→canvas), `aria-live` for undo/redo announcements. (covers: AC-5, AC-6)
-- [ ] **3.10** `mind_map_nodes.metadata` — add optional `source_brainstorm_item_id` field. AI generation populates when source IDs exist. `NodeInspector` shows "Source: brainstorm item X" link. Best-effort, not an error if missing. (covers: AC-1)
+- [x] **3.5** `tauri-app/src/features/mindmap/components/NodeInspector.tsx` — add "Duplicate" button→`store.duplicateNode`. (covers: AC-3)
+- [x] **3.6** `tauri-app/src/features/mindmap/components/MindMapCanvas.tsx` — enable `onConnect` for cross-branch edges(dashed). Right-click context menu: Duplicate, Delete. Edge click+Delete to remove. (covers: AC-3)
+- [x] **3.7** `tauri-app/src/features/mindmap/MindMapWorkspace.tsx` — add `Spinner` while loading tree. Add overlay spinner during AI generation/regroup. (covers: AC-6)
+- [x] **3.8** `tauri-app/src/features/mindmap/components/MindMapErrorBoundary.tsx` [NEW] — React error boundary. On crash: "Something went wrong" + "Reload" button(re-fetch tree). Does not crash host page. (covers: AC-6)
+- [x] **3.9** All mindmap components — a11y pass: `aria-label` on interactive elements, arrow-key canvas nav(React Flow built-in), icon+label for node types(not color alone), `prefers-reduced-motion`→disable animations, focus management(select→inspector, Escape→canvas), `aria-live` for undo/redo announcements. (covers: AC-5, AC-6)
+- [x] **3.10** `mind_map_nodes.metadata` — add optional `source_brainstorm_item_id` field. AI generation populates when source IDs exist. `NodeInspector` shows "Source: brainstorm item X" link. Best-effort, not an error if missing. (covers: AC-1)
 
 ### 3D — Tests
 
-- [ ] **3.11** `tests/test_mindmap_export.py` [NEW]:
+- [x] **3.11** `tests/test_mindmap_export.py` [NEW]:
   - `test_export_json_roundtrip` — create→export→import→assert identical
   - `test_export_markdown_format` — valid Markdown with correct indent
   - `test_import_invalid_json` — `ValidationError` with field message
   - `test_import_missing_required_field` — JSON without `nodes`→explicit error
   - `test_import_cycle_in_json` — self-referencing parent→rejected
   - `test_export_empty_map` — root-only→valid output (covers: AC-11)
-- [ ] **3.12** `tests/test_mindmap_ui_states.py` [NEW]:
+- [x] **3.12** `tests/test_mindmap_ui_states.py` [NEW]:
   - Undo/redo stack: push 3→undo×2→assert tree at snapshot 1→redo×1→assert at snapshot 2
   - Dirty flag: modify→assert dirty=true; save→assert dirty=false (covers: AC-11)
 

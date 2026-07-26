@@ -4,6 +4,7 @@ import { MindMapCanvas } from './components/MindMapCanvas';
 import { NodeInspector } from './components/NodeInspector';
 import { MapToolbar } from './components/MapToolbar';
 import { RegroupPreview } from './components/RegroupPreview';
+import { MindMapErrorBoundary } from './components/MindMapErrorBoundary';
 import { Button, LoadingState, EmptyState } from '../../components/ui';
 import { IconMindmap, IconPlus, IconSparkles } from '../../lib/icons';
 
@@ -22,6 +23,7 @@ export function MindMapWorkspace({ projectId }: { projectId: string; sessionId?:
   const addNode = useMindMapStore((s) => s.addNode);
   const deleteNode = useMindMapStore((s) => s.deleteNode);
   const aiGenerate = useMindMapStore((s) => s.aiGenerate);
+  const refresh = useMindMapStore((s) => s.refresh);
   const undo = useMindMapStore((s) => s.undo);
   const redo = useMindMapStore((s) => s.redo);
 
@@ -96,10 +98,14 @@ export function MindMapWorkspace({ projectId }: { projectId: string; sessionId?:
     <div className="overflow-hidden rounded-2xl border border-line bg-surface">
       <MapToolbar projectId={projectId} />
       {error && (
-        <div className="border-b border-danger/30 bg-danger/10 px-4 py-2 text-xs text-danger">
+        <div role="alert" className="border-b border-danger/30 bg-danger/10 px-4 py-2 text-xs text-danger">
           {error}
         </div>
       )}
+      {/* Screen readers get told what changed without stealing focus. */}
+      <p aria-live="polite" className="sr-only">
+        {tree ? `${tree.flat.length} nodes. ${selectedNodeId ? 'A node is selected.' : ''}` : ''}
+      </p>
       <div className="relative h-[calc(100vh-260px)] min-h-[420px]">
         {tree && tree.flat.length === 0 ? (
           <div className="flex h-full items-center justify-center">
@@ -115,7 +121,9 @@ export function MindMapWorkspace({ projectId }: { projectId: string; sessionId?:
             />
           </div>
         ) : (
-          <MindMapCanvas />
+          <MindMapErrorBoundary onReset={() => refresh()}>
+            <MindMapCanvas />
+          </MindMapErrorBoundary>
         )}
         <NodeInspector />
       </div>

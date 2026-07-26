@@ -23,6 +23,10 @@ function MindMapNodeInner({ id, data, selected }: NodeProps) {
 
   return (
     <div
+      role="treeitem"
+      aria-selected={!!selected}
+      aria-label={`${d.title}, type ${d.nodeType}${d.childCount ? `, ${d.childCount} children` : ''}`}
+      aria-expanded={d.childCount > 0 ? !d.collapsed : undefined}
       className={cn(
         'group relative min-w-[168px] max-w-[260px] rounded-xl border bg-surface px-3 py-2 shadow-soft transition-shadow',
         selected ? 'border-brand ring-2 ring-brand/30' : 'border-line hover:shadow-card'

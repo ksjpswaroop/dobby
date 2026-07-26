@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMindMapStore } from '../store';
 import { Button } from '../../../components/ui';
+import { exportPng, exportStructured, exportSvg } from '../export';
+import { useToast } from '../../../lib/toast';
 import {
   IconPlus, IconTrash, IconLayers, IconRefresh, IconCheck,
   IconZoomIn, IconZoomOut, IconArrowLeft, IconSparkles, IconFlow,
+  IconDownload, IconMindmap, IconGraph,
 } from '../../../lib/icons';
 
 export function MapToolbar({ projectId }: { projectId: string }) {
@@ -31,7 +34,40 @@ export function MapToolbar({ projectId }: { projectId: string }) {
   const aiExpand = useMindMapStore((s) => s.aiExpand);
   const aiRegroup = useMindMapStore((s) => s.aiRegroup);
 
+  const layout = useMindMapStore((s) => s.layout);
+  const setLayout = useMindMapStore((s) => s.setLayout);
+  const importMap = useMindMapStore((s) => s.importMap);
+  const { toast } = useToast();
+  const fileRef = useRef<HTMLInputElement>(null);
+
   const [title, setTitle] = useState('');
+  const [exporting, setExporting] = useState(false);
+
+  const doExport = async (format: 'json' | 'markdown' | 'mermaid' | 'png' | 'svg') => {
+    if (!activeMapId || !tree) return;
+    try {
+      setExporting(true);
+      if (format === 'png') await exportPng(tree.map.title);
+      else if (format === 'svg') await exportSvg(tree.map.title);
+      else await exportStructured(activeMapId, tree.map.title, format);
+      toast(`Exported as ${format.toUpperCase()}`, 'success');
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Export failed', 'error');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const onPickFile = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      await importMap(projectId, JSON.parse(await file.text()));
+      toast('Mind map imported', 'success');
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Could not read that file', 'error');
+    }
+  };
+
 
   const nodeCount = tree?.flat.length ?? 0;
 
@@ -127,6 +163,65 @@ export function MapToolbar({ projectId }: { projectId: string }) {
         title="Propose a reorganization (preview before applying)"
       >
         AI regroup
+      </Button>
+
+      <span className="mx-1 h-5 w-px bg-line" />
+
+      {/* Layout: radial reads better for wide maps, tree for deep ones. */}
+      <div className="flex items-center gap-0.5 rounded-xl border border-line p-0.5" role="group"
+           aria-label="Layout mode">
+        <button
+          onClick={() => setLayout('tree')}
+          aria-pressed={layout === 'tree'}
+          title="Tree layout (left to right)"
+          className={'flex h-7 w-7 items-center justify-center rounded-lg transition-colors ' +
+            (layout === 'tree' ? 'bg-brand/10 text-brand' : 'text-ink-muted hover:bg-surface2')}
+        >
+          <IconGraph size={15} />
+        </button>
+        <button
+          onClick={() => setLayout('radial')}
+          aria-pressed={layout === 'radial'}
+          title="Radial layout (around the centre)"
+          className={'flex h-7 w-7 items-center justify-center rounded-lg transition-colors ' +
+            (layout === 'radial' ? 'bg-brand/10 text-brand' : 'text-ink-muted hover:bg-surface2')}
+        >
+          <IconMindmap size={15} />
+        </button>
+      </div>
+
+      <select
+        className="input w-auto py-1.5 text-[13px]"
+        value=""
+        disabled={exporting}
+        aria-label="Export mind map"
+        onChange={(e) => {
+          const v = e.target.value as 'json' | 'markdown' | 'mermaid' | 'png' | 'svg';
+          if (v) doExport(v);
+          e.target.value = '';
+        }}
+      >
+        <option value="">Export…</option>
+        <option value="json">JSON (re-importable)</option>
+        <option value="markdown">Markdown outline</option>
+        <option value="mermaid">Mermaid</option>
+        <option value="png">PNG image</option>
+        <option value="svg">SVG image</option>
+      </select>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={(e) => {
+          onPickFile(e.target.files?.[0]);
+          e.target.value = '';
+        }}
+      />
+      <Button variant="ghost" icon={<IconDownload size={15} />}
+              onClick={() => fileRef.current?.click()} title="Import a map from JSON">
+        Import
       </Button>
 
       <span className="mx-1 h-5 w-px bg-line" />

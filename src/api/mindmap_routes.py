@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
 from src.db.schema import DatabaseManager
@@ -220,6 +221,55 @@ async def restore_snapshot(map_id: str, snapshot_id: str, db: DatabaseManager = 
         return svc.restore_snapshot(db, map_id, snapshot_id)
     except svc.MindMapError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# Export / import (Phase 3)
+# ---------------------------------------------------------------------------
+class ImportRequest(BaseModel):
+    data: Dict[str, Any]
+
+
+@router.get("/map/{map_id}/export/json")
+async def export_json(map_id: str, db: DatabaseManager = Depends(get_db)):
+    from src.services import mindmap_export as ex
+
+    try:
+        return ex.export_json(db, map_id)
+    except ex.ImportError_ as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/map/{map_id}/export/markdown", response_class=PlainTextResponse)
+async def export_markdown(map_id: str, db: DatabaseManager = Depends(get_db)):
+    from src.services import mindmap_export as ex
+
+    try:
+        return PlainTextResponse(ex.export_markdown(db, map_id), media_type="text/markdown")
+    except ex.ImportError_ as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/map/{map_id}/export/mermaid", response_class=PlainTextResponse)
+async def export_mermaid(map_id: str, db: DatabaseManager = Depends(get_db)):
+    from src.services import mindmap_export as ex
+
+    try:
+        return PlainTextResponse(ex.export_mermaid(db, map_id), media_type="text/plain")
+    except ex.ImportError_ as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/import/{project_id}")
+async def import_map(project_id: str, req: ImportRequest,
+                     db: DatabaseManager = Depends(get_db)):
+    from src.services import mindmap_export as ex
+
+    try:
+        return ex.import_json(db, project_id, req.data)
+    except ex.ImportError_ as e:
+        # 400 with a field-level message so the UI can show what's wrong.
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # ---------------------------------------------------------------------------

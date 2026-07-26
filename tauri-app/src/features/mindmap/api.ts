@@ -104,6 +104,18 @@ export const mindmapApi = {
 
   aiApplyRegroup: (mapId: string, proposed: ProposedTree) =>
     req<{ nodes_created: number }>('POST', `/ai/regroup/${mapId}/apply`, { proposed }),
+
+  // --- Export / import (Phase 3) ---
+  exportJson: (mapId: string) => req<Record<string, unknown>>('GET', `/map/${mapId}/export/json`),
+
+  exportText: async (mapId: string, format: 'markdown' | 'mermaid') => {
+    const resp = await fetch(`${BASE}/map/${mapId}/export/${format}`);
+    if (!resp.ok) throw new Error(`Export failed (${resp.status})`);
+    return resp.text();
+  },
+
+  importMap: (projectId: string, data: unknown) =>
+    req<{ map_id: string; nodes_imported: number }>('POST', `/import/${projectId}`, { data }),
 };
 
 export interface ProposedNode {
