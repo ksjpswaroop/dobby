@@ -16,7 +16,6 @@ from datetime import datetime
 import uuid
 
 from src.db.schema import DatabaseManager, Project, Node, Edge, FeatureBacklog, Session, AuditEntry
-from src.graph.graph import DocumentGraph, GraphNode, GraphEdge, NodeType, EdgeType, NodeStatus
 
 router = APIRouter()
 

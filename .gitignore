@@ -10,8 +10,11 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+# Anchored to the repo root: an unanchored `lib/` also matched
+# tauri-app/src/lib/, which silently kept 8 frontend source files out of the
+# repository — a fresh clone could not build the UI.
+/lib/
+/lib64/
 parts/
 sdist/
 var/

@@ -22,7 +22,6 @@ if TYPE_CHECKING:  # avoids a runtime import cycle
     from src.observability.tracer import Tracer
 
 from src.db.schema import DatabaseManager, Project, Node, Edge
-from src.graph.graph import DocumentGraph, GraphNode, GraphEdge, NodeType, EdgeType, NodeStatus
 from src.llm.ollama_client import OllamaClient, get_ollama_client
 from src.verifiers.deterministic_verifier import DeterministicVerifier, get_verifier, VerificationResult
 from src.sessions.manager import SessionManager, get_session_manager
