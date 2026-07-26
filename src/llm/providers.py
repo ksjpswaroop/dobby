@@ -377,13 +377,38 @@ async def route(required: Optional[Sequence[Capability]] = None,
 async def generate(prompt: str, *, model: str = "", system: str = "",
                    max_tokens: int = 2000, temperature: float = 0.7,
                    json_mode: bool = False,
-                   required: Optional[Sequence[Capability]] = None) -> str:
+                   required: Optional[Sequence[Capability]] = None,
+                   use_persona: bool = True) -> str:
     """Generate through whichever provider owns the chosen model.
 
     This is the per-session entry point (OW 41): pass a model and it is used,
     rather than every call reading one global setting.
+
+    The active persona supplies the system prompt when the caller does not, and
+    contributes its own model requirements — that is what makes a persona
+    change behaviour rather than just being a label on a settings screen. An
+    explicit `system` always wins, so a caller that needs exact control keeps it.
     """
     from src.settings import get_settings
+
+    required = list(required or [])
+    if use_persona:
+        try:
+            from src.personas import registry as personas
+
+            persona = personas.active()
+            if persona:
+                if not system:
+                    system = persona.system_prompt
+                for name in persona.model_capabilities:
+                    try:
+                        cap = Capability(name)
+                    except ValueError:
+                        continue
+                    if cap not in required:
+                        required.append(cap)
+        except Exception:  # a broken persona must not block generation
+            logger.warning("persona_unavailable", exc_info=True)
 
     target = model or getattr(get_settings(), "model", "") or ""
     chosen = await route(required, prefer=target)
