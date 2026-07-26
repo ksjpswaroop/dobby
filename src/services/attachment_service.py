@@ -46,6 +46,10 @@ TEXT_SUFFIXES = {".txt", ".md", ".markdown", ".csv", ".json", ".yaml", ".yml",
                  ".html", ".htm", ".rst", ".log", ".py", ".ts", ".tsx", ".js"}
 PDF_SUFFIXES = {".pdf"}
 DOC_SUFFIXES = {".docx", ".rtf", ".doc"}
+# Audio is stored but never text-extracted here — transcription is a separate,
+# explicit step so a large file is not silently decoded on upload.
+AUDIO_SUFFIXES = {".wav", ".mp3", ".m4a", ".mp4", ".aac", ".flac", ".ogg",
+                  ".opus", ".webm", ".mov", ".mkv"}
 
 
 class AttachmentError(Exception):
@@ -165,6 +169,9 @@ def extract(path: Path) -> Dict[str, Any]:
         return _extract_plain(path)
     if suffix in DOC_SUFFIXES:
         return _extract_with_textutil(path, why=f"{suffix} needs a converter")
+    if suffix in AUDIO_SUFFIXES:
+        return {"text": "", "mode": "audio", "pages": 0,
+                "note": "Audio stored. Transcribe it to get text."}
     return {"text": "", "mode": "unsupported", "pages": 0,
             "note": f"{suffix or 'This file type'} is stored but not readable as text."}
 

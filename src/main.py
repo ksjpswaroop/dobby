@@ -238,6 +238,10 @@ app.include_router(research_router)
 from src.api.inbox_routes import router as inbox_router
 app.include_router(inbox_router)
 
+# Include transcription routes (local speech-to-text)
+from src.api.transcription_routes import router as transcription_router
+app.include_router(transcription_router)
+
 # Include persona routes (how Dobby behaves)
 from src.api.persona_routes import router as persona_router
 app.include_router(persona_router)
