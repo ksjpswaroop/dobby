@@ -42,10 +42,19 @@ class Settings:
     # making no network calls beyond the local model unless the user opts in.
     # "searxng" can be self-hosted and stays local; tavily/brave send queries
     # to a third party, which the UI states before enabling them.
-    search_provider: str = "none"  # none | searxng | tavily | brave
+    search_provider: str = "none"  # none | wigolo | searxng | tavily | brave
     searxng_url: str = ""
     tavily_api_key: str = ""
     brave_api_key: str = ""
+    # wigolo runs as a separate local daemon (`wigolo serve`). Keyless on
+    # loopback; the token is only needed when it is bound past 127.0.0.1.
+    wigolo_url: str = "http://127.0.0.1:3333"
+    wigolo_token: str = ""
+
+    # Symbolica — optional symbolic reasoning engine. Empty means the local
+    # propositional prover handles everything, which it does completely.
+    symbolica_url: str = ""
+    symbolica_api_key: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)

@@ -62,10 +62,48 @@ class TestParsing:
         raw = "\n".join(f"finding number {i}" for i in range(20))
         assert len(svc._lines(raw, 3)) == 3
 
+    @pytest.mark.parametrize("meta", [
+        "The search results do not provide information on note-taking apps",
+        "Search results do not contain relevant pricing information",
+        "No relevant information was found about competitors",
+        "Unable to determine the market size from these sources",
+    ])
+    def test_meta_statements_are_not_kept_as_findings(self, meta):
+        """A remark about the search is not a finding about the subject."""
+        raw = f"- A real finding about the market here\n- {meta}"
+        kept = svc._lines(raw, 5, drop_meta=True)
+        assert kept == ["A real finding about the market here"]
+
+    def test_meta_filtering_is_opt_in(self):
+        raw = "The search results do not provide information on anything"
+        assert svc._lines(raw, 5) != []
+        assert svc._lines(raw, 5, drop_meta=True) == []
+
     def test_section_extraction_is_case_insensitive(self):
         plan = "## Product\nbuild this\n## Market\nsell to them\n"
         assert svc._section(plan, "market") == "sell to them"
         assert svc._section(plan, "Nope") == ""
+
+
+class TestQueryAnchoring:
+    """A search engine sees only the query string, not the conversation."""
+
+    def test_a_generic_query_gains_the_subject(self):
+        out = svc._anchor_query("Industry", "Local-first note apps for consultants")
+        assert out != "Industry"
+        assert "consultants" in out or "local-first" in out
+
+    def test_a_query_already_naming_the_subject_is_untouched(self):
+        q = "local-first note apps pricing 2026"
+        assert svc._anchor_query(q, "Local-first note apps for consultants") == q
+
+    def test_generic_research_words_do_not_count_as_anchors(self):
+        """'market size' is in every query; it cannot disambiguate anything."""
+        out = svc._anchor_query("market size", "Local-first note apps for consultants")
+        assert out != "market size"
+
+    def test_an_empty_topic_leaves_the_query_alone(self):
+        assert svc._anchor_query("anything", "") == "anything"
 
 
 class TestUnverifiedStatisticGuard:
@@ -120,7 +158,49 @@ class TestSearch:
 
     def test_remote_providers_are_declared(self):
         assert set(ss.REMOTE_PROVIDERS) == {"tavily", "brave"}
-        assert "searxng" not in ss.REMOTE_PROVIDERS  # self-hosted stays local
+        # Both of these run on the user's own machine, so neither is "remote".
+        assert "searxng" not in ss.REMOTE_PROVIDERS
+        assert "wigolo" not in ss.REMOTE_PROVIDERS
+
+    @pytest.mark.asyncio
+    async def test_wigolo_is_offered_and_needs_no_key(self):
+        assert "wigolo" in ss.PROVIDERS
+        # Unlike the hosted providers, a missing key is never the failure mode.
+        out = await ss.search("anything", "wigolo", {"wigolo_url": "http://127.0.0.1:9"})
+        assert "API key" not in (out.error or "")
+
+    @pytest.mark.asyncio
+    async def test_wigolo_not_running_explains_how_to_start_it(self):
+        out = await ss.search("anything", "wigolo",
+                              {"wigolo_url": "http://127.0.0.1:9"})
+        assert out.results == []
+        assert "wigolo serve" in out.error
+
+    @pytest.mark.asyncio
+    async def test_wigolo_parses_both_response_envelopes(self, monkeypatch):
+        """The daemon has shipped results at the top level and nested in `data`."""
+        import httpx
+
+        for payload in (
+            {"results": [{"title": "T", "url": "u", "snippet": "s"}]},
+            {"data": {"results": [{"title": "T", "url": "u", "content": "s"}]}},
+        ):
+            class FakeResponse:
+                status_code = 200
+
+                def raise_for_status(self): pass
+
+                def json(self): return payload
+
+            class FakeClient:
+                async def __aenter__(self): return self
+                async def __aexit__(self, *a): return False
+                async def post(self, *a, **k): return FakeResponse()
+
+            monkeypatch.setattr(httpx, "AsyncClient", lambda **k: FakeClient())
+            out = await ss.search("q", "wigolo", {})
+            assert len(out.results) == 1
+            assert out.results[0].title == "T" and out.results[0].snippet == "s"
 
 
 class TestBriefs:

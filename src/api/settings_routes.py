@@ -13,7 +13,7 @@ import sys
 import httpx
 import structlog
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from src.settings.store import APP_VERSION, get_settings_store
 
@@ -32,12 +32,57 @@ class SettingsResponse(BaseModel):
     verification_threshold: float
     app_version: str
 
+    search_provider: str = "none"
+    searxng_url: str = ""
+    wigolo_url: str = ""
+    wigolo_token: str = ""
+    symbolica_url: str = ""
+
+    # API keys are deliberately absent from the response. The UI only ever needs
+    # to know whether one is set, not what it is, so a stored secret is never
+    # echoed back over HTTP.
+    tavily_key_set: bool = False
+    brave_key_set: bool = False
+    symbolica_key_set: bool = False
+
+    @classmethod
+    def from_settings(cls, s) -> "SettingsResponse":
+        d = s.to_dict()
+        return cls(
+            **{k: v for k, v in d.items() if k in cls.model_fields},
+            tavily_key_set=bool(d.get("tavily_api_key")),
+            brave_key_set=bool(d.get("brave_api_key")),
+            symbolica_key_set=bool(d.get("symbolica_api_key")),
+        )
+
 
 class SettingsUpdate(BaseModel):
     ollama_host: str | None = None
     model: str | None = None
     theme: str | None = None
     verification_threshold: float | None = Field(default=None, ge=0, le=100)
+
+    # Research web search. `search_provider` is validated against the provider
+    # registry so a typo cannot silently disable search.
+    search_provider: str | None = None
+    searxng_url: str | None = None
+    tavily_api_key: str | None = None
+    brave_api_key: str | None = None
+    wigolo_url: str | None = None
+    wigolo_token: str | None = None
+
+    # Optional symbolic reasoning engine.
+    symbolica_url: str | None = None
+    symbolica_api_key: str | None = None
+
+    @field_validator("search_provider")
+    @classmethod
+    def _known_provider(cls, v: str | None) -> str | None:
+        from src.services.research_search import PROVIDERS
+
+        if v is not None and v not in PROVIDERS:
+            raise ValueError(f"Unknown search provider. Choose one of: {', '.join(PROVIDERS)}")
+        return v
 
 
 class ModelInfo(BaseModel):
@@ -69,13 +114,13 @@ class SystemInfo(BaseModel):
 @router.get("/settings", response_model=SettingsResponse)
 async def get_settings_endpoint():
     s = get_settings_store().load()
-    return SettingsResponse(**s.to_dict())
+    return SettingsResponse.from_settings(s)
 
 
 @router.put("/settings", response_model=SettingsResponse)
 async def update_settings_endpoint(update: SettingsUpdate):
     s = get_settings_store().update(**update.model_dump(exclude_none=True))
-    return SettingsResponse(**s.to_dict())
+    return SettingsResponse.from_settings(s)
 
 
 # ============================================================================

@@ -57,6 +57,27 @@ export interface SourceRef {
   track_kind: string;
 }
 
+export interface Conflict {
+  left_index: number;
+  right_index: number;
+  left: string;
+  right: string;
+  subject: string;
+  explanation: string;
+  engine: string;
+  left_track?: string;
+  right_track?: string;
+}
+
+/** Result of the deductive pass over every finding in a brief. */
+export interface Audit {
+  checked: number;
+  consistent: boolean;
+  engine: string;
+  notes: string[];
+  conflicts: Conflict[];
+}
+
 export interface Brief {
   id: string;
   project_id: string;
@@ -71,6 +92,7 @@ export interface Brief {
   created_at: string | null;
   tracks: Track[];
   sources: SourceRef[];
+  audit: Audit | null;
 }
 
 export interface BriefSummary {

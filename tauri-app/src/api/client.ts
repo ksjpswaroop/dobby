@@ -91,6 +91,10 @@ export interface AppSettings {
   searxng_url: string;
   tavily_api_key: string;
   brave_api_key: string;
+  wigolo_url: string;
+  wigolo_token: string;
+  symbolica_url: string;
+  symbolica_api_key: string;
 }
 
 export interface SettingsUpdate {
@@ -102,6 +106,10 @@ export interface SettingsUpdate {
   searxng_url?: string;
   tavily_api_key?: string;
   brave_api_key?: string;
+  wigolo_url?: string;
+  wigolo_token?: string;
+  symbolica_url?: string;
+  symbolica_api_key?: string;
 }
 
 export interface ModelInfo {

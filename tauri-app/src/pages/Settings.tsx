@@ -20,6 +20,8 @@ import {
 const SEARCH_PROVIDERS: { id: string; label: string; blurb: string; remote: boolean }[] = [
   { id: 'none', label: 'Off', remote: false,
     blurb: 'Model knowledge only. No network calls. Unsourced claims are flagged.' },
+  { id: 'wigolo', label: 'wigolo (recommended)', remote: false,
+    blurb: 'Real multi-engine web search from a local daemon. No API key, nothing leaves your machine.' },
   { id: 'searxng', label: 'SearXNG', remote: false,
     blurb: 'Your own instance — stays on your machine or network.' },
   { id: 'tavily', label: 'Tavily', remote: true,
@@ -82,6 +84,8 @@ export default function Settings() {
   const [threshold, setThreshold] = useState(85);
   const [searchProvider, setSearchProvider] = useState('none');
   const [searxngUrl, setSearxngUrl] = useState('');
+  const [wigoloUrl, setWigoloUrl] = useState('http://127.0.0.1:3333');
+  const [symbolicaUrl, setSymbolicaUrl] = useState('');
 
   const [pullName, setPullName] = useState('');
   const [pulling, setPulling] = useState(false);
@@ -100,6 +104,8 @@ export default function Settings() {
       setThreshold(s.verification_threshold);
       setSearchProvider(s.search_provider || 'none');
       setSearxngUrl(s.searxng_url || '');
+      setWigoloUrl(s.wigolo_url || 'http://127.0.0.1:3333');
+      setSymbolicaUrl(s.symbolica_url || '');
       loadModels();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load settings');
@@ -152,6 +158,8 @@ export default function Settings() {
   const saveSearch = async (patch: Parameters<typeof api.updateSettings>[0]) => {
     if (patch.search_provider) setSearchProvider(patch.search_provider);
     if (patch.searxng_url !== undefined) setSearxngUrl(patch.searxng_url);
+    if (patch.wigolo_url !== undefined) setWigoloUrl(patch.wigolo_url);
+    if (patch.symbolica_url !== undefined) setSymbolicaUrl(patch.symbolica_url);
     try {
       setSettings(await api.updateSettings(patch));
       toast('Search settings saved', 'success');
@@ -400,6 +408,31 @@ export default function Settings() {
             ))}
           </div>
 
+          {searchProvider === 'wigolo' && (
+            <div className="rounded-xl border border-line bg-surface2/40 px-3 py-2.5">
+              <p className="text-[12px] text-ink">
+                wigolo is a separate local daemon. Install and start it once:
+              </p>
+              <pre className="mt-1.5 overflow-x-auto rounded-lg bg-surface px-2.5 py-1.5 font-mono text-[11px] text-ink-muted">
+npx wigolo init{'\n'}wigolo serve
+              </pre>
+              <label className="mt-2 block">
+                <span className="mb-1 block text-[11px] font-medium text-ink-muted">
+                  Daemon URL
+                </span>
+                <input
+                  className="input w-full"
+                  placeholder="http://127.0.0.1:3333"
+                  defaultValue={wigoloUrl}
+                  onBlur={(e) => saveSearch({ wigolo_url: e.target.value.trim() })}
+                />
+              </label>
+              <p className="mt-1.5 text-[11px] text-ink-muted">
+                wigolo is AGPL-3.0 and runs as its own process — Dobby calls it over
+                REST and ships none of its code.
+              </p>
+            </div>
+          )}
           {searchProvider === 'searxng' && (
             <label className="block">
               <span className="mb-1 block text-[12px] font-medium text-ink">SearXNG URL</span>
@@ -438,6 +471,56 @@ export default function Settings() {
               </span>
             </label>
           )}
+        </div>
+      </Section>
+
+      {/* Reasoning */}
+      <Section
+        icon={<IconCheck size={18} />}
+        title="Reasoning"
+        description="Dobby machine-checks research findings for contradictions using a built-in classical logic prover. Symbolica adds first-order logic and proof objects."
+      >
+        <div className="space-y-3">
+          <div className="rounded-xl border border-line bg-surface2/40 px-3 py-2.5 text-[12px] text-ink-muted">
+            <span className="font-medium text-ink">Always on:</span> a complete
+            decision procedure for propositional logic runs locally with no
+            configuration. Contradictions between research tracks are found and
+            reported whether or not anything below is set.
+          </div>
+          <label className="block">
+            <span className="mb-1 block text-[12px] font-medium text-ink">
+              Symbolica URL <span className="text-ink-muted">(optional)</span>
+            </span>
+            <input
+              className="input w-full"
+              placeholder="https://your-symbolica-host"
+              defaultValue={symbolicaUrl}
+              onBlur={(e) => saveSearch({ symbolica_url: e.target.value.trim() })}
+            />
+          </label>
+          {symbolicaUrl && (
+            <label className="block">
+              <span className="mb-1 block text-[12px] font-medium text-ink">
+                Symbolica API key
+              </span>
+              <input
+                type="password"
+                className="input w-full"
+                placeholder="Paste your key"
+                onBlur={(e) => {
+                  const v = e.target.value.trim();
+                  if (v) {
+                    saveSearch({ symbolica_api_key: v });
+                    e.target.value = '';
+                  }
+                }}
+              />
+            </label>
+          )}
+          <p className="text-[11px] text-ink-muted">
+            When unreachable, reasoning falls back to the local prover rather than
+            failing — the engine that answered is always named in the result.
+          </p>
         </div>
       </Section>
 

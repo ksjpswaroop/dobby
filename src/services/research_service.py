@@ -54,7 +54,28 @@ _LEAD = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s*")
 _FENCE = re.compile(r"^\s*(```|~~~)")
 
 
-def _lines(text: str, limit: int) -> List[str]:
+# Statements *about the research process* rather than about the subject. A model
+# that finds nothing useful reports that as a "finding", which then pollutes
+# everything downstream: it becomes a bullet in the report, it gets counted as
+# evidence, and — worst — the contradiction audit sees "no information exists"
+# as a claim that contradicts every real claim about the topic.
+_META_FINDING = re.compile(
+    r"^(?:the\s+)?(?:search results?|results?|context|sources?|provided (?:text|content))"
+    r"\b.*\b(?:do(?:es)? not|don't|doesn't|fail|lack|contain no|provide no|"
+    r"is|are)\b.*\b(?:provide|contain|include|mention|specify|information|"
+    r"relevant|no |insufficient|unrelated|empty)"
+    r"|^no (?:relevant )?(?:information|results?|data|sources?)\b"
+    r"|^(?:unable|not possible) to (?:determine|find|extract)",
+    re.I,
+)
+
+
+def _is_meta(line: str) -> bool:
+    """True if the line talks about the search rather than the subject."""
+    return bool(_META_FINDING.match(line.strip()))
+
+
+def _lines(text: str, limit: int, drop_meta: bool = False) -> List[str]:
     out: List[str] = []
     in_fence = False
     for raw in (text or "").splitlines():
@@ -66,6 +87,8 @@ def _lines(text: str, limit: int) -> List[str]:
         line = _LEAD.sub("", raw).strip().strip('"').strip()
         # Drop conversational filler a small model prepends.
         if not line or line.endswith(":") or len(line) < 8:
+            continue
+        if drop_meta and _is_meta(line):
             continue
         out.append(line[:600])
         if len(out) >= limit:
@@ -99,6 +122,37 @@ def _flag_unverified(text: str, grounded: bool) -> str:
     if grounded or _MARKED.match(text) or not _STAT.search(text):
         return text
     return f"[unverified] {text}"
+
+
+_QUERY_STOP = frozenset("""
+a an the and or of to in on for with by from as at is are market size pricing
+competitors overview analysis trends research report data statistics
+""".split())
+
+
+def _topic_terms(topic: str) -> List[str]:
+    return [w for w in re.findall(r"[a-z][a-z0-9-]{2,}", topic.lower())
+            if w not in _QUERY_STOP]
+
+
+def _anchor_query(query: str, topic: str) -> str:
+    """Keep a generated query unmistakably about the subject.
+
+    A model asked for search terms will happily emit `Industry`, which returns a
+    TV series and a restaurant — observed in live testing. A search engine sees
+    only the query string, so a query sharing no distinctive term with the topic
+    is reworded to include it rather than being sent as-is.
+    """
+    terms = _topic_terms(topic)
+    if not terms:
+        return query
+    lowered = query.lower()
+    if any(t in lowered for t in terms):
+        return query
+    # Prepend the topic's most distinctive words; longest first is a decent
+    # proxy for specificity without needing a corpus.
+    anchor = " ".join(sorted(terms, key=len, reverse=True)[:3])
+    return f"{anchor} {query}".strip()
 
 
 def _section(markdown: str, heading: str) -> str:
@@ -145,6 +199,8 @@ def _search_config() -> Tuple[str, Dict[str, str]]:
     s = get_settings()
     provider = getattr(s, "search_provider", "none") or "none"
     cfg = {
+        "wigolo_url": getattr(s, "wigolo_url", "") or "",
+        "wigolo_token": getattr(s, "wigolo_token", "") or "",
         "searxng_url": getattr(s, "searxng_url", "") or "",
         "tavily_api_key": getattr(s, "tavily_api_key", "") or "",
         "brave_api_key": getattr(s, "brave_api_key", "") or "",
@@ -197,6 +253,7 @@ def get_brief(db: DatabaseManager, brief_id: str) -> Optional[Dict[str, Any]]:
             "summary": b.summary, "search_provider": b.search_provider,
             "error": b.error, "run_id": b.run_id,
             "created_at": b.created_at.isoformat() if b.created_at else None,
+            "audit": (b.extra_metadata or {}).get("audit"),
             "tracks": [{
                 "kind": t.kind, "label": TRACK_LABELS.get(t.kind, t.kind),
                 "status": t.status, "content": t.content,
@@ -287,7 +344,8 @@ async def _run_track(db: DatabaseManager, client, brief_id: str, topic: str,
             raw = await _ask(client, P.queries_prompt(topic, label, plan,
                                                       QUERIES_PER_ROUND),
                              max_tokens=300, temperature=0.5)
-            queries = _lines(raw, QUERIES_PER_ROUND)
+            queries = [_anchor_query(q, topic)
+                       for q in _lines(raw, QUERIES_PER_ROUND)]
         # round 1's queries come from the review step below
 
         outcomes = await S.search_many(queries, provider, cfg) if queries else []
@@ -302,7 +360,8 @@ async def _run_track(db: DatabaseManager, client, brief_id: str, topic: str,
                          P.learnings_prompt(topic, label, focus, evidence, grounded),
                          max_tokens=1400, temperature=0.4)
         new = [_flag_unverified(l, grounded)
-               for l in _lines(raw, MAX_LEARNINGS) if l not in learnings]
+               for l in _lines(raw, MAX_LEARNINGS, drop_meta=True)
+               if l not in learnings]
         learnings.extend(new)
         tracer.event("track.round", f"{label}: {len(learnings)} findings",
                      track=kind, round=round_no + 1, sources=len(hits))
@@ -313,7 +372,7 @@ async def _run_track(db: DatabaseManager, client, brief_id: str, topic: str,
                             max_tokens=200, temperature=0.3)
         if "COMPLETE" in review.upper():
             break
-        queries = _lines(review, 2)
+        queries = [_anchor_query(q, topic) for q in _lines(review, 2)]
         if not queries:
             break
 
@@ -353,6 +412,61 @@ async def _run_track(db: DatabaseManager, client, brief_id: str, topic: str,
                error=search_note)
     tracer.event("track.done", f"{label} complete", advance=True,
                  track=kind, findings=len(learnings), sources=len(all_hits))
+
+
+async def _audit_brief(db: DatabaseManager, brief_id: str,
+                       tracer: Tracer) -> Dict[str, Any]:
+    """Run the deductive audit across every track's findings and persist it.
+
+    Stored on `extra_metadata` rather than its own column so existing databases
+    need no migration — SQLite will not add a column to a table that already
+    exists, and a research brief created before this feature must still open.
+    """
+    from src.reasoning.audit import audit_with_symbolica
+
+    brief = get_brief(db, brief_id)
+    if not brief:
+        return {}
+
+    # Track each finding back to the track it came from, so a conflict can name
+    # which two parts of the research disagree.
+    findings: List[str] = []
+    origin: List[str] = []
+    for t in brief["tracks"]:
+        for l in t["learnings"]:
+            findings.append(l["content"])
+            origin.append(t["label"])
+
+    if len(findings) < 2:
+        return {}
+
+    tracer.event("audit.start", f"Checking {len(findings)} findings for contradictions")
+    try:
+        result = await audit_with_symbolica(findings)
+    except Exception as e:
+        logger.warning("research_audit_failed", brief_id=brief_id, error=str(e))
+        tracer.event("audit.failed", str(e)[:120], level="warning")
+        return {}
+
+    payload = result.to_dict()
+    for c in payload["conflicts"]:
+        c["left_track"] = origin[c["left_index"]]
+        c["right_track"] = origin[c["right_index"]]
+
+    with db.get_session() as s:
+        b = s.get(ResearchBrief, brief_id)
+        if b:
+            b.extra_metadata = {**(b.extra_metadata or {}), "audit": payload}
+            s.commit()
+
+    tracer.event(
+        "audit.done",
+        "No contradictions found" if result.consistent
+        else f"{len(result.conflicts)} contradiction(s) across tracks",
+        level="info" if result.consistent else "warning",
+        engine=result.engine, conflicts=len(result.conflicts),
+    )
+    return payload
 
 
 async def run_brief(db: DatabaseManager, brief_id: str) -> Dict[str, Any]:
@@ -407,8 +521,16 @@ async def run_brief(db: DatabaseManager, brief_id: str) -> Dict[str, Any]:
             raise ResearchError("No track produced any output.")
         summary = await _ask(client, P.summary_prompt(topic, sections),
                              max_tokens=600, temperature=0.4)
-        _set_brief(db, brief_id, summary=summary.strip(), status="complete")
-        tracer.event("summary.done", "Research complete")
+        _set_brief(db, brief_id, summary=summary.strip())
+
+        # 4. Deductive audit — do the five tracks actually agree with each other?
+        # Nothing in the pipeline forces them to: each track is a separate model
+        # call, so a brief can assert a growing market in one and a shrinking one
+        # in another. Only a cross-track comparison catches that.
+        audit = await _audit_brief(db, brief_id, tracer)
+        _set_brief(db, brief_id, status="complete")
+        tracer.event("summary.done", "Research complete",
+                     conflicts=len(audit.get("conflicts", [])))
         tracer.finish("ok")
     except Exception as e:
         logger.exception("research_failed", brief_id=brief_id)

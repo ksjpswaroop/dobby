@@ -8,10 +8,21 @@ resolution here is that search is **opt-in and honest about itself**:
 * ``none`` (default) — no network calls. Research runs on the model's own
   knowledge plus the project's own context. Findings are recorded with
   ``kind="model"`` so nothing pretends to be sourced when it is not.
-* ``searxng`` — a self-hosted meta-search instance. Keeps the local-first
-  guarantee intact if the user runs it on their own machine or network.
+* ``wigolo`` — **the recommended provider.** A local daemon that does real
+  multi-engine web search with no API keys and no cloud account. It is the only
+  option that gives genuinely sourced research while keeping Dobby's
+  local-first promise.
+* ``searxng`` — a self-hosted meta-search instance. Also stays local.
 * ``tavily`` / ``brave`` — hosted APIs, user-supplied key. These *do* send the
   query off the machine, which the UI states plainly before enabling them.
+
+**On wigolo and licensing.** wigolo is AGPL-3.0-only; Dobby is MIT and
+commercial. None of its code is here and none is redistributed. Dobby talks to
+it the way its own documentation prescribes — as a separate process over its
+REST API — which is arm's-length interprocess communication between independent
+programs, not a derivative work. The user installs and runs wigolo themselves
+(``npx wigolo init && wigolo serve``). Vendoring any part of it into this
+repository would relicense Dobby, so it must not happen.
 
 Provider shapes follow the set in u14app/deep-research (MIT); the
 implementations here are written against our async httpx stack.
@@ -28,10 +39,13 @@ import structlog
 
 logger = structlog.get_logger()
 
-PROVIDERS = ("none", "searxng", "tavily", "brave")
+PROVIDERS = ("none", "wigolo", "searxng", "tavily", "brave")
 
 # Providers that send the query to a third party. The UI warns on these.
+# wigolo and searxng run on the user's own machine, so neither appears here.
 REMOTE_PROVIDERS = ("tavily", "brave")
+
+DEFAULT_WIGOLO_URL = "http://127.0.0.1:3333"
 
 TIMEOUT = 20.0
 MAX_RESULTS = 6
@@ -62,6 +76,45 @@ class SearchUnavailable(Exception):
 
 def _clip(text: Any) -> str:
     return str(text or "").strip()[:MAX_SNIPPET]
+
+
+async def _wigolo(query: str, cfg: Dict[str, str]) -> List[SearchResult]:
+    """Search through a locally running wigolo daemon.
+
+    Separate process, plain REST — no wigolo code is linked into Dobby. The
+    daemon is keyless, so unlike the hosted providers there is nothing to
+    configure beyond having it running.
+    """
+    base = (cfg.get("wigolo_url") or DEFAULT_WIGOLO_URL).rstrip("/")
+    headers = {"Content-Type": "application/json"}
+    token = cfg.get("wigolo_token")
+    if token:  # only needed when the daemon is bound past loopback
+        headers["Authorization"] = f"Bearer {token}"
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT) as c:
+            r = await c.post(f"{base}/v1/search", headers=headers,
+                             json={"query": query, "max_results": MAX_RESULTS})
+            r.raise_for_status()
+            data = r.json()
+    except (httpx.ConnectError, httpx.ReadTimeout):
+        raise SearchUnavailable(
+            "wigolo is not running. Start it with `wigolo serve` "
+            "(install once with `npx wigolo init`)."
+        )
+
+    # The envelope has varied across versions; accept the common shapes rather
+    # than breaking on a minor release.
+    items = data.get("results")
+    if items is None and isinstance(data.get("data"), dict):
+        items = data["data"].get("results")
+    return [
+        SearchResult(
+            _clip(i.get("title")),
+            _clip(i.get("url")),
+            _clip(i.get("snippet") or i.get("content") or i.get("description")),
+        )
+        for i in (items or [])[:MAX_RESULTS]
+    ]
 
 
 async def _searxng(query: str, cfg: Dict[str, str]) -> List[SearchResult]:
@@ -115,7 +168,7 @@ async def _brave(query: str, cfg: Dict[str, str]) -> List[SearchResult]:
     ]
 
 
-_IMPL = {"searxng": _searxng, "tavily": _tavily, "brave": _brave}
+_IMPL = {"wigolo": _wigolo, "searxng": _searxng, "tavily": _tavily, "brave": _brave}
 
 
 async def search(query: str, provider: str, cfg: Dict[str, str]) -> SearchOutcome:
