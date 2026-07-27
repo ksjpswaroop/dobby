@@ -545,9 +545,18 @@ def commit_daily_plan(db: DatabaseManager, project_id: str, plan_date: str,
         existing = (s.query(DailyPlan)
                     .filter(DailyPlan.project_id == project_id,
                             DailyPlan.plan_date == plan_date).first())
-        payload = [{"feature_id": i.get("feature_id"), "title": i.get("title", ""),
-                    "estimate": float(i.get("estimate") or 0), "done": bool(i.get("done"))}
-                   for i in items]
+        payload = []
+        for i in items:
+            entry = {"feature_id": i.get("feature_id"), "title": i.get("title", ""),
+                     "estimate": float(i.get("estimate") or 0),
+                     "done": bool(i.get("done"))}
+            # Carry scheduling fields when a time-blocked plan supplies them.
+            # Hard-coding the four keys above silently dropped the times, so a
+            # committed schedule read back as an unordered list.
+            for optional in ("start", "end", "kind"):
+                if i.get(optional):
+                    entry[optional] = i[optional]
+            payload.append(entry)
         if existing:
             existing.items = payload
             plan = existing

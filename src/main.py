@@ -358,6 +358,10 @@ app.include_router(shared_router)
 from src.api.decision_routes import router as decision_router
 app.include_router(decision_router)
 
+# Include time-block routes (the daily plan laid onto the clock)
+from src.api.timeblock_routes import router as timeblock_router
+app.include_router(timeblock_router)
+
 # Include skill routes (Skill Studio: intent, sources, guardrails, approval)
 from src.api.skill_routes import router as skill_router
 app.include_router(skill_router)
