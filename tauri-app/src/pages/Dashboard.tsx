@@ -6,6 +6,7 @@ import { PinnedStrip } from '../components/PinnedStrip';
 import { TodayHome } from '../components/TodayHome';
 import { Onboarding } from '../components/Onboarding';
 import { MomentumCard } from '../components/MomentumCard';
+import { NextActionCard } from '../components/NextActionCard';
 import { useProject } from '../lib/project';
 import {
   IconWizard,
@@ -107,6 +108,7 @@ export default function Dashboard() {
 
       <Onboarding />
       <MomentumCard />
+      <NextActionCard />
       <PinnedStrip />
       <TodayHome />
 

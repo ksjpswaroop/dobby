@@ -5,6 +5,8 @@ import Projects from './pages/Projects';
 import Documents from './pages/Documents';
 import DocumentEditor from './pages/DocumentEditor';
 import Research from './pages/Research';
+import Copilot from './pages/Copilot';
+import ModelUsage from './pages/ModelUsage';
 import Automations from './pages/Automations';
 import Inbox from './pages/Inbox';
 import Ideas from './pages/Ideas';
@@ -39,6 +41,8 @@ function App() {
         <Route path="/documents" element={<Documents />} />
         <Route path="/documents/:nodeId" element={<DocumentEditor />} />
         <Route path="/research" element={<Research />} />
+        <Route path="/copilot" element={<Copilot />} />
+        <Route path="/usage" element={<ModelUsage />} />
         <Route path="/automations" element={<Automations />} />
         <Route path="/inbox" element={<Inbox />} />
         <Route path="/ideas" element={<Ideas />} />

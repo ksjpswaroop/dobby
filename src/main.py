@@ -73,6 +73,17 @@ async def lifespan(app: FastAPI):
 
     logger.info("database_initialized", path=str(db_path))
 
+    # Seed the built-in prompt library. Idempotent, so it only ever inserts
+    # what a given install is missing.
+    from src.services.prompt_library import seed_builtins
+
+    try:
+        seeded = seed_builtins(app.state.db)
+        if seeded:
+            logger.info("prompt_library_seeded", added=seeded)
+    except Exception:
+        logger.warning("prompt_seed_failed", exc_info=True)
+
     # Mint this launch's API token before anything can serve a request.
     from src.security.tokens import get_token_manager
 
@@ -297,6 +308,11 @@ app.include_router(momentum_router)
 # Include living-document routes (editing, versions, status, tags, comments)
 from src.api.document_routes import router as document_router
 app.include_router(document_router)
+
+# Include copilot routes (chat, next-best-action, prioritization, prompts,
+# per-task model routing, usage telemetry)
+from src.api.copilot_routes import router as copilot_router
+app.include_router(copilot_router)
 
 
 # Health check endpoint

@@ -11,7 +11,7 @@ Both the API layer and the generation pipelines read the active settings through
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -81,6 +81,16 @@ class Settings:
     # it. Which steps are *done* is derived from real data, so the checklist
     # can never disagree with the app.
     onboarding_dismissed: bool = False
+
+    # Per-task model routing (D28): {task_type: model}. An unset task falls
+    # through to `model` above, so an empty map behaves exactly as before.
+    model_routes: Dict[str, str] = field(default_factory=dict)
+
+    # Basis for the local compute-cost estimate (D30). Local inference has no
+    # invoice, so cost is derived from time x power x rate — both knobs are
+    # exposed because a laptop and a workstation differ by an order of magnitude.
+    power_watts: float = 60.0
+    electricity_rate_per_kwh: float = 0.15
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
