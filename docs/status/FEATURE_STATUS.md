@@ -1,6 +1,6 @@
 # Dobby — Feature Status & Test Evidence
 
-**As of 2026-07-27** · branch `feat/dobby-v2-workbench` · 1009 backend tests passing
+**As of 2026-07-27** · branch `feat/dobby-v2-workbench` · 1074 backend tests passing
 
 This document records every shipped feature, how to test it yourself step by
 step, and the actual output captured when it was verified. Commands are
@@ -32,7 +32,7 @@ Full test suite:
 cd /Users/swaroop/projects/09-dobby && source .venv/bin/activate && python -m pytest tests/ -q
 ```
 
-Captured result: `1009 passed, 3204 warnings in 21.80s`
+Captured result: `1074 passed, 3346 warnings in 23.16s`
 
 ---
 
@@ -45,11 +45,11 @@ Captured result: `1009 passed, 3204 warnings in 21.80s`
 | 3 — AI Copilot | 21–30 | **9 done, 1 partial (D29)** |
 | 4 — Capture++ & Multimodal | 31–40 | **8/10** (D36, D37 deferred — need infrastructure) |
 | 5 — Planning & PM | 41–50 | **10/10 done** |
-| 6 — Integrations | 51–60 | 1/10 (D56 superseded) |
+| 6 — Integrations | 51–60 | **4/10** (D58/D59/D60 + D56; 6 OAuth syncs deferred) |
 | 7 — Collaboration & Sharing | 61–70 | not started |
 | 8 — Habit, Delight & Retention | 71–80 | **9/10** (D77 partial) |
 | 9 — Quality, Trust & Power | 81–90 | **8/10** (D88 not started, D89 deferred) |
-| 10 — Scale, Ecosystem & Ritual | 91–100 | not started |
+| 10 — Scale, Ecosystem & Ritual | 91–100 | **7/10** (D91/D93 deferred, D92 not started) |
 
 Separately, the `OW · Features` parity tracker stands at 45 Done / 7 Partial /
 2 Planned / 1 N/A, and the `Feature · Mind Map` module is fully shipped across
