@@ -92,6 +92,23 @@ class Settings:
     power_watts: float = 60.0
     electricity_rate_per_kwh: float = 0.15
 
+    # Nudges (D80). Every notification passes one gate, so six individually
+    # reasonable features cannot add up to an app that pesters you.
+    notifications_enabled: bool = True
+    quiet_hours_start: int = 22
+    quiet_hours_end: int = 8
+    muted_notifications: list = field(default_factory=list)
+    notification_last_sent: Dict[str, str] = field(default_factory=dict)
+
+    # Focus mode (D75).
+    focus_minutes: int = 25
+    break_minutes: int = 5
+
+    # Personalisation (D76). Theme itself lives in `theme` above.
+    accent_color: str = "violet"
+    density: str = "comfortable"   # comfortable | compact
+    font_scale: float = 1.0
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 

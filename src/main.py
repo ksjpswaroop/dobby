@@ -327,6 +327,10 @@ app.include_router(trust_router)
 from src.api.capture_routes import router as capture_router
 app.include_router(capture_router)
 
+# Include habit routes (reminders, recap, achievements, focus, share card)
+from src.api.habit_routes import router as habit_router
+app.include_router(habit_router)
+
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])
