@@ -1,6 +1,6 @@
 # Dobby — Feature Status & Test Evidence
 
-**As of 2026-07-27** · branch `feat/dobby-v2-workbench` · 823 backend tests passing
+**As of 2026-07-27** · branch `feat/dobby-v2-workbench` · 871 backend tests passing
 
 This document records every shipped feature, how to test it yourself step by
 step, and the actual output captured when it was verified. Commands are
@@ -32,7 +32,7 @@ Full test suite:
 cd /Users/swaroop/projects/09-dobby && source .venv/bin/activate && python -m pytest tests/ -q
 ```
 
-Captured result: `823 passed, 1985 warnings in 19.47s`
+Captured result: `871 passed, 2251 warnings in 19.85s`
 
 ---
 
@@ -44,7 +44,7 @@ Captured result: `823 passed, 1985 warnings in 19.47s`
 | 2 — Living Documents | 11–20 | **10/10 done** |
 | 3 — AI Copilot | 21–30 | **9 done, 1 partial (D29)** |
 | 4 — Capture++ & Multimodal | 31–40 | 1/10 (D31 Transcribe) |
-| 5 — Planning & PM | 41–50 | not started |
+| 5 — Planning & PM | 41–50 | **10/10 done** |
 | 6 — Integrations | 51–60 | 1/10 (D56 superseded) |
 | 7 — Collaboration & Sharing | 61–70 | not started |
 | 8 — Habit, Delight & Retention | 71–80 | not started |
@@ -499,9 +499,89 @@ working, not a bug.
 
 ---
 
+# Phase 5 — Planning & PM
+
+Ten features on two invariants, both verified live against the real backlog.
+
+## The board — `/board`
+
+Renders the Pareto-scored backlog across Backlog / Todo / In Progress /
+Blocked / Done. Planning state lives in its own `PlanningMeta` row rather than
+new columns on `FeatureBacklog`, which the generation pipeline writes on every
+run — so this phase is purely additive.
+
+Cards show Pareto score, I/E/R, and an estimate **seeded from the effort
+score** so nothing starts unestimated. Column moves are buttons, not drag
+targets: keyboard-operable, and it makes "blocked" impossible to pick.
+
+## Blocked is derived, never stored — **verified end-to-end**
+
+A feature is blocked if it has an unfinished blocker, full stop. Storing
+"blocked" as a column *and* keeping blocker rows would let the two disagree.
+
+```bash
+# 1. baseline
+curl -s .../planning/board/default-project        # backlog 10, blocked 0
+
+# 2. A is blocked by B
+curl -s -X POST .../planning/blockers -d '{"project_id":"...","feature_id":"$A","blocked_by_id":"$B"}'
+curl -s .../planning/board/default-project        # backlog 9, blocked 1
+
+# 3. try to create a cycle
+curl -s -X POST .../planning/blockers -d '{"feature_id":"$B","blocked_by_id":"$A"}'
+
+# 4. finish B
+curl -s -X POST .../planning/board/$B/move -d '{"to_column":"done"}'
+curl -s .../planning/board/default-project        # backlog 9, blocked 0, done 1
+```
+
+**Captured output:**
+
+```
+--- board ---            backlog 10  todo 0  in_progress 0  blocked 0  done 0
+--- add blocker ---      backlog  9  todo 0  in_progress 0  blocked 1  done 0
+--- cycle refused ---    "That would create a circular dependency."
+--- finish blocker ---   backlog  9  todo 0  in_progress 0  blocked 0  done 1
+```
+
+Finishing the upstream item unblocked the downstream one with no second
+action. `POST /board/{id}/move` with `to_column: "blocked"` returns **400** —
+you add a blocker instead.
+
+## Every column move is recorded
+
+`_move()` is the only path that changes a column, and it always appends a
+`FeatureStatusChange`. That append-only log is what makes D50 possible:
+velocity, throughput, cycle time, and cumulative flow are all questions about
+*when* work moved, which current state cannot answer.
+
+Cycle time counts a feature's **first** completion — bouncing something back
+out of Done and finishing it again must not inflate throughput, and a late
+typo fix must not inflate a month-old cycle time.
+
+## The rest of the phase
+
+| Feature | Notes |
+|---|---|
+| **D42 Timeline** | Features with no dates are laid out by dependency *depth* — blocked-by-two-levels sits two lanes right. That is the honest thing to draw when no real dates exist. |
+| **D43 Sprints** | Capacity, committed vs completed, over-capacity flag. Activating a sprint closes any other active one, because two active sprints makes "the current sprint" ambiguous everywhere it is used. |
+| **D45 Estimates** | Seeded from the Pareto effort input, then refined. Points or hours. |
+| **D46 Work breakdown** | The model proposes subtasks; **accept** writes them as real backlog features with real blocker edges, so they land in the same board and analytics rather than a parallel to-do list. |
+| **D47 Daily plan** | Capacity-aware, drawn from the ready set with blocked work excluded, committed per local date. |
+| **D48 Weekly review** | Completed last week, carryover with days-in-progress, items blocked 7+ days, and a suggested capacity from real 4-week throughput. |
+| **D49 OKRs** | Key-result progress is **impact-weighted** — finishing a 10-impact feature moves it far more than a 1-impact one. |
+
+**Bug found and fixed.** `PlanningMeta` could be inserted before the
+`FeatureBacklog` row its foreign key references when both were pending in one
+batch — the same SQLAlchemy ordering issue found in Phase 2. Caught by
+`test_accept_creates_features_and_dependencies`.
+
+---
+
 # What is not done
 
-70 of the 100 roadmap features remain (D32–D100, minus the few superseded).
+60 of the 100 roadmap features remain (D32–D40, D51–D100, minus the few
+superseded).
 These are tracked in `Dobby_100_Day_Roadmap.xlsx` with a **Lane** column
 assigning each to one of eight parallel workstreams:
 
