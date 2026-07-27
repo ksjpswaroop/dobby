@@ -111,6 +111,17 @@ def is_open_path(path: str) -> bool:
     # checked before the payload is parsed — see src/connectors/base.py.
     if path.startswith("/api/v1/messaging/") and path.endswith("/webhook"):
         return True
+    # The licensing *authority* role (src/licensing/authority.py) is a
+    # separate server at real launch, reached from this same process only as
+    # a development convenience — it has no access to this launch's token, and
+    # in production it would not share this API's auth scheme at all. Its own
+    # cryptographic signature check is the real gate here, which is exactly
+    # why only /verify — read-only, tells a caller nothing beyond what their
+    # own token already claims — is exempted. /issue and /revoke stay behind
+    # the token: those are privileged authority operations, unlike a
+    # signature-checked read.
+    if path == "/api/v1/license/verify":
+        return True
     # FastAPI's docs pull static assets from this prefix.
     return path.startswith("/docs") or path.startswith("/redoc")
 

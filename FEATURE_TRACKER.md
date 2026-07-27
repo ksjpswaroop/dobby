@@ -3,10 +3,34 @@
 Single source of truth for what is built, what is next, and what is deferred.
 Supersedes the loose `PHASE_*_*.md` files at the repo root (see *Housekeeping*).
 
-**Last updated:** 2026-07-26 · **Branch:** `feat/dobby-v2-workbench` · **PR:** [#1](https://github.com/ksjpswaroop/dobby/pull/1)
+**Last updated:** 2026-07-27 · **Branch:** `feat/dobby-v2-workbench` · **PR:** [#1](https://github.com/ksjpswaroop/dobby/pull/1)
 
-**Status at a glance:** 13 of 23 navigation surfaces are live · 60 API endpoints ·
-112 backend tests passing · frontend typechecks and builds clean.
+**Status at a glance:** `OW · Features` roadmap tab is **45 Done / 7 Partial / 2
+Planned / 1 N/A** (of 55) · **657 backend tests passing** · frontend
+typechecks and builds clean. The counts and prose below this line predate a
+long run of roadmap work (research, automations, approvals/inbox, terminal,
+MCP client, attachments, providers, sessions, personas, transcription,
+messaging, and the licensing verification system) — treat this file as
+historical detail underneath the header, and
+[docs/expansion/07_STATE_OF_THE_PROJECT.md](docs/expansion/07_STATE_OF_THE_PROJECT.md)
+as the current ground truth.
+
+**2026-07-27 session — roadmap closure + licensing v1:**
+- Closed OW rows 17, 18, 23, 45, 54 (quick-reply chips, Inbox→Slack/Telegram
+  mirroring, multi-root terminal scoping, a run checklist derived from the
+  existing event stream, and untrusted-content sanitization shared with the
+  persona injection scan).
+- Built the license verification system ahead of billing per the locked
+  decision: Ed25519-signed tokens, a `dobby license issue` CLI, online
+  verification with revocation, and — the actual point of building it now —
+  **clock-rollback detection**: a stored high-water mark that only ever
+  advances from a server-issued timestamp, so winding the system clock back
+  cannot revive a lapsed update window. `src/licensing/` + `docs/expansion/08`
+  §7 has the full spec and reasoning.
+- Remaining `OW · Features` gaps (7, 16, 32, 33/37, 39, 43, 44, 51) all need
+  either a UI that doesn't exist yet (messaging credentials, a Skills surface)
+  or a decision already recorded as deferred (OAuth broker conflicts with
+  local-first) — none are a quick follow-on.
 
 ---
 

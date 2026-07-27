@@ -266,6 +266,10 @@ app.include_router(attachment_router)
 from src.api.mcp_routes import router as mcp_router
 app.include_router(mcp_router)
 
+# Include licensing routes (verification mechanism; billing deferred)
+from src.api.license_routes import router as license_router
+app.include_router(license_router)
+
 # Include terminal routes (approval-gated command execution)
 from src.api.terminal_routes import router as terminal_router
 app.include_router(terminal_router)

@@ -15,7 +15,9 @@ import {
   IconMonitor,
   IconResearch,
   IconControl,
+  IconSparkles,
 } from '../lib/icons';
+import { licenseApi, type LicenseStatus } from '../features/licensing/api';
 
 /** Search backends for the Research stage. `remote` = the query leaves the machine. */
 const SEARCH_PROVIDERS: { id: string; label: string; blurb: string; remote: boolean }[] = [
@@ -89,6 +91,9 @@ export default function Settings() {
   const [symbolicaUrl, setSymbolicaUrl] = useState('');
   const [mirrorConnector, setMirrorConnector] = useState('');
   const [mirrorChannel, setMirrorChannel] = useState('');
+  const [license, setLicense] = useState<LicenseStatus | null>(null);
+  const [licenseInput, setLicenseInput] = useState('');
+  const [licenseBusy, setLicenseBusy] = useState(false);
 
   const [pullName, setPullName] = useState('');
   const [pulling, setPulling] = useState(false);
@@ -133,8 +138,50 @@ export default function Settings() {
 
   useEffect(() => {
     loadAll();
+    licenseApi.status().then(setLicense).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const activateLicense = async () => {
+    setLicenseBusy(true);
+    try {
+      await licenseApi.activate(licenseInput.trim());
+      setLicense(await licenseApi.status());
+      setLicenseInput('');
+      toast('License activated', 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Could not activate that key', 'error');
+    } finally {
+      setLicenseBusy(false);
+    }
+  };
+
+  const recheckLicense = async () => {
+    setLicenseBusy(true);
+    try {
+      const result = await licenseApi.check();
+      setLicense(await licenseApi.status());
+      toast(result.valid ? 'License verified' : result.reason,
+            result.valid ? 'success' : 'error');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Could not verify', 'error');
+    } finally {
+      setLicenseBusy(false);
+    }
+  };
+
+  const deactivateLicense = async () => {
+    setLicenseBusy(true);
+    try {
+      await licenseApi.deactivate();
+      setLicense(await licenseApi.status());
+      toast('License deactivated', 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed', 'error');
+    } finally {
+      setLicenseBusy(false);
+    }
+  };
 
   const saveHost = async () => {
     try {
@@ -253,6 +300,62 @@ export default function Settings() {
             tone={system?.ollama_reachable ? 'success' : 'danger'}
           />
           <Stat label="Platform" value={system?.platform ?? '—'} />
+        </div>
+      </Section>
+
+      {/* License */}
+      <Section
+        icon={<IconSparkles size={18} />}
+        title="License"
+        description="The MIT core is free forever. A license unlocks the signed build, auto-updates, and support once those exist — billing isn't live yet, so keys are hand-issued."
+      >
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge tone={license?.tier === 'free' || !license ? 'neutral'
+                        : license.last_verified_ok ? 'success' : 'warning'}>
+              {license?.tier ? license.tier.replace('_', ' ') : 'free'}
+            </Badge>
+            {license && license.tier !== 'free' && (
+              <span className="text-[12px] text-ink-muted">
+                {license.seats} seat{license.seats === 1 ? '' : 's'}
+                {license.updates_until &&
+                  ` · updates until ${new Date(license.updates_until).toLocaleDateString()}`}
+                {!license.updates_until && ' · updates never expire'}
+              </span>
+            )}
+          </div>
+          {license?.last_error && (
+            <p className="text-[12px] text-warning">{license.last_error}</p>
+          )}
+
+          {!license || license.tier === 'free' ? (
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="min-w-[240px] flex-1">
+                <span className="mb-1 block text-[12px] font-medium text-ink">
+                  License key
+                </span>
+                <input
+                  className="input w-full font-mono text-[12px]"
+                  placeholder="Paste your license key"
+                  value={licenseInput}
+                  onChange={(e) => setLicenseInput(e.target.value)}
+                />
+              </label>
+              <Button variant="primary" loading={licenseBusy}
+                      disabled={!licenseInput.trim()} onClick={activateLicense}>
+                Activate
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="ghost" loading={licenseBusy} onClick={recheckLicense}>
+                Re-verify now
+              </Button>
+              <Button variant="ghost" loading={licenseBusy} onClick={deactivateLicense}>
+                Deactivate
+              </Button>
+            </div>
+          )}
         </div>
       </Section>
 
