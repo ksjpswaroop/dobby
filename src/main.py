@@ -294,6 +294,10 @@ app.include_router(pin_router)
 from src.api.momentum_routes import router as momentum_router
 app.include_router(momentum_router)
 
+# Include living-document routes (editing, versions, status, tags, comments)
+from src.api.document_routes import router as document_router
+app.include_router(document_router)
+
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])

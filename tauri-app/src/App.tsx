@@ -3,6 +3,7 @@ import AppShell from './components/AppShell';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import Documents from './pages/Documents';
+import DocumentEditor from './pages/DocumentEditor';
 import Research from './pages/Research';
 import Automations from './pages/Automations';
 import Inbox from './pages/Inbox';
@@ -36,6 +37,7 @@ function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/documents" element={<Documents />} />
+        <Route path="/documents/:nodeId" element={<DocumentEditor />} />
         <Route path="/research" element={<Research />} />
         <Route path="/automations" element={<Automations />} />
         <Route path="/inbox" element={<Inbox />} />

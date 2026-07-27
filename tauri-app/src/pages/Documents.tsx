@@ -185,6 +185,13 @@ export default function Documents() {
                   </div>
                   <div className="flex shrink-0 gap-2">
                     <Button
+                      variant="primary"
+                      onClick={() => navigate(`/documents/${selected.id}`)}
+                      title="Edit, version, comment on, and refine this document"
+                    >
+                      Open editor
+                    </Button>
+                    <Button
                       variant="ghost"
                       icon={<IconMindmap size={16} />}
                       loading={mapping}
