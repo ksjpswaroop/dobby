@@ -316,6 +316,12 @@ export const IconPin = (p: IconProps) => (
     <path d="M9 3h6l-.7 5.2a2 2 0 0 0 .6 1.7l1.9 1.8a1 1 0 0 1-.7 1.7H7.9a1 1 0 0 1-.7-1.7l1.9-1.8a2 2 0 0 0 .6-1.7L9 3Z" />
   </Icon>
 );
+/** Scales — a fork with two weighted sides, i.e. a decision. */
+export const IconScale = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 4v16M7 20h10M4 8h16M4 8l-2.5 5a3 3 0 0 0 5 0L4 8ZM20 8l-2.5 5a3 3 0 0 0 5 0L20 8Z" />
+  </Icon>
+);
 /** A clock with a trailing sweep — recent activity, not a literal deadline. */
 export const IconActivity = (p: IconProps) => (
   <Icon {...p}>

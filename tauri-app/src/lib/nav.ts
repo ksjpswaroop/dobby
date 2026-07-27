@@ -5,6 +5,7 @@ import {
   IconCommand, IconSkill, IconFlow,
   IconTerminal, IconLogs, IconControl, IconSearch, IconSettings,
   IconMarket, IconSparkles, IconResearch, IconServer, IconBulb, IconActivity, IconCpu,
+  IconScale,
 } from './icons';
 
 export type NavStatus = 'live' | 'planned';
@@ -49,6 +50,8 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Projects', route: '/projects', icon: IconFolder, status: 'live' },
       { label: 'Backlog', route: '/backlog', icon: IconBacklog, status: 'live' },
       { label: 'Board', route: '/board', icon: IconLayers, status: 'live' },
+      { label: 'Work Graph', route: '/workgraph', icon: IconGraph, status: 'live' },
+      { label: 'Decisions', route: '/decisions', icon: IconScale, status: 'live' },
       { label: 'Graph', route: '/graph', icon: IconGraph, status: 'live' },
       { label: 'Mind Map', route: '/mindmap', icon: IconMindmap, status: 'live' },
     ],

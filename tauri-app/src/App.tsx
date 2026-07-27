@@ -15,6 +15,8 @@ import Connections from './pages/Connections';
 import Wizard from './pages/Wizard';
 import Yolo from './pages/Yolo';
 import GraphPage from './pages/GraphPage';
+import WorkGraphPage from './pages/WorkGraph';
+import Decisions from './pages/Decisions';
 import BacklogPage from './pages/BacklogPage';
 import BoardPage from './pages/Board';
 import Bulk from './pages/Bulk';
@@ -57,6 +59,8 @@ function App() {
         <Route path="/yolo" element={<Yolo />} />
         <Route path="/bulk" element={<Bulk />} />
         <Route path="/graph" element={<GraphPage />} />
+        <Route path="/workgraph" element={<WorkGraphPage />} />
+        <Route path="/decisions" element={<Decisions />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/logs" element={<Logs />} />
         <Route path="/activity" element={<Activity />} />

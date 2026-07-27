@@ -354,6 +354,10 @@ app.include_router(shared_router)
 from src.api.decision_routes import router as decision_router
 app.include_router(decision_router)
 
+# Include work-graph routes (how goals, projects, decisions and skills connect)
+from src.api.workgraph_routes import router as workgraph_router
+app.include_router(workgraph_router)
+
 # Include vault + pipeline-builder routes (encryption at rest, composable pipelines)
 from src.api.vault_routes import router as vault_router
 from src.api.vault_routes import pipeline_router
