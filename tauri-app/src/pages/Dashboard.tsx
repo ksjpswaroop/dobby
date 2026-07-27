@@ -5,6 +5,7 @@ import { Card, LoadingState, ErrorState, Badge, Button, PageHeader } from '../co
 import { PinnedStrip } from '../components/PinnedStrip';
 import { TodayHome } from '../components/TodayHome';
 import { Onboarding } from '../components/Onboarding';
+import { MomentumCard } from '../components/MomentumCard';
 import { useProject } from '../lib/project';
 import {
   IconWizard,
@@ -105,6 +106,7 @@ export default function Dashboard() {
       <PageHeader title="Today" subtitle="Your local document workspace at a glance." />
 
       <Onboarding />
+      <MomentumCard />
       <PinnedStrip />
       <TodayHome />
 

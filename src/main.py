@@ -290,6 +290,10 @@ app.include_router(timeline_router)
 from src.api.pin_routes import router as pin_router
 app.include_router(pin_router)
 
+# Include momentum routes (daily streak + 14-day sparkline)
+from src.api.momentum_routes import router as momentum_router
+app.include_router(momentum_router)
+
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])
