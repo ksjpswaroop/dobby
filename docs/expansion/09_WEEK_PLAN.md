@@ -1,4 +1,15 @@
-# Week Plan — Jul 27 to Aug 2, 2026
+# Launch Week Plan (rescheduled)
+
+> **Rescheduled 2026-07-26.** This was originally scoped for Jul 27–Aug 2. That
+> calendar sequencing is no longer the plan: **this week runs once every
+> remaining `OW · Features` roadmap row is Done** (tracked in
+> `FEATURE_TRACKER.md`), not on fixed dates. Priority right now is closing the
+> feature gap, not building the launch/payment infrastructure below — Monday's
+> licensing work in particular has already been partly pulled forward per the
+> refined spec in doc 08 §7 (build the anti-piracy verification system now;
+> defer only the payment-processor wiring). Read this document as **"Launch
+> Week, whenever it comes,"** with the day labels kept for narrative clarity —
+> "Monday" means "the first day of that week," not a specific date.
 
 **Goal of the week:** close the commercialization gap from doc 07 far enough to run a **private beta with real paying customers by Sunday night.** Not a public launch — a public launch needs a beta feedback cycle first (Week 2, see doc 10). This week builds the floor everything else stands on: you can charge someone money, give them a build that opens without a security warning, and have somewhere to send them.
 

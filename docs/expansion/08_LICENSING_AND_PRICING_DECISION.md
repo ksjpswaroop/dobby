@@ -1,6 +1,15 @@
 # Licensing & Pricing — the decision that gates Monday
 
-This document exists because "sell 1 million licenses" and "the repo is MIT" are two true statements that need one reconciling decision before any entitlement code gets written. Read this before Day 1 of the week plan.
+> **DECIDED — 2026-07-26.** All four decisions below are locked. See §5 for the
+> final answers and the refinement to the licensing spec. **Sequencing
+> changed:** the launch week (doc 09) — including building this system — is
+> deferred until every remaining roadmap feature is complete (tracked in
+> `FEATURE_TRACKER.md` / the `OW · Features` tab). Billing integration
+> (Lemon Squeezy/Paddle/Stripe) is deferred further still, until there are
+> **1,000 beta users** on the free/open-core build. Until then, this document
+> is the spec to build against when that week arrives — not this week's task.
+
+This document exists because "sell 1 million licenses" and "the repo is MIT" are two true statements that need one reconciling decision before any entitlement code gets written.
 
 ---
 
@@ -76,3 +85,30 @@ Full spec lives in [09_WEEK_PLAN.md](09_WEEK_PLAN.md), Day 1 and Day 2.
 3. **Payment processor:** recommend **Lemon Squeezy or Paddle** over raw Stripe for the individual tier — both act as Merchant of Record, meaning *they* handle global sales-tax/VAT compliance, which raw Stripe does not. This matters immediately if you're selling to individuals worldwide. Stripe Billing is fine for the Corporate tier (invoiced, fewer, larger transactions, less tax complexity per deal).
 4. **Apple Developer Program enrollment** ($99/year) — needs your Apple ID and payment to start; this has a real-world processing delay (usually same-day, occasionally 24-48h) so it should be started **today**, not Monday, so it isn't the thing blocking Wednesday's signing work.
 5. **White-label as a Day-1 GTM priority, not a Month-6 one** — confirm this reprioritization, since it changes what "GTM" work happens in parallel with engineering this week (doc 10 assumes yes).
+
+---
+
+## 6. Final decisions (2026-07-26)
+
+| # | Decision | Answer |
+|---|---|---|
+| 1 | Licensing model | **Open-core.** MIT core stays free; sell the signed build, updates, and brand. |
+| 2 | Pricing structure | **$79 perpetual + $29/yr updates** for individuals, not monthly subscription. **Billing integration is deferred** — see §7. |
+| 3 | Payment processor | **Lemon Squeezy or Paddle** for individuals (Merchant of Record, handles global VAT/tax) · **Stripe** for invoiced Team deals. Not wired until §7's gate is met. |
+| 4 | White-label priority | **Yes**, as scoped in doc 10 — a Day-1 GTM priority once the launch week runs. |
+
+## 7. Refinement: build the license/anti-piracy system now, wire payments later
+
+Two things that sounded like one decision are actually separable, and the separation matters:
+
+- **The license-key verification mechanism** (does this copy have a valid key, is it a Pro/Team/White-Label build) — **build this now, ahead of billing**, because it's cheap relative to the rest of the roadmap and has no dependency on a payment processor. Keys can be hand-issued (the `dobby license issue` CLI from the original Day 1 plan) until checkout exists.
+- **Billing integration** (Lemon Squeezy/Paddle/Stripe checkout, webhook → auto-issue) — **deferred until the product is 100% feature-complete against the roadmap AND there are 1,000 beta users** on the free build. Charging money before the product and the funnel have both proven themselves is a worse sequencing than proving the product first.
+
+**The anti-piracy requirement, stated precisely:** verification is not purely offline/local as originally scoped — it checks in with the licensing website, and **a detected system-clock rollback must invalidate the key.** The mechanism:
+
+1. Each verification (online, when reachable) receives a **server-issued signed timestamp** alongside the license status — never trust the client's own `Date.now()`/`datetime.utcnow()` as the source of truth for expiry math.
+2. The client persists the **last known-good verification time**. On every check — online or offline — if the local system clock reads **earlier** than the last known-good time by more than a small skew tolerance (a few minutes, to allow for timezone/NTP jitter), the license is treated as invalid until a fresh online verification succeeds. This is what makes rolling the clock back to defeat an update-expiry check fail: the stored high-water mark doesn't roll back with it.
+3. The offline grace period (doc 08 §4's "never break local-first") still applies **forward** in time — a paying user offline on a plane keeps working — the tamper check only fires on a *backward* clock jump, which has no legitimate reason to happen.
+4. The signed key itself is re-issued (a fresh SHA/signature) on each successful online re-verification, so a captured key from an old verification response has a shelf life rather than working forever once exfiltrated.
+
+This is a real, buildable v1 today, independent of who's charging whom. See `FEATURE_TRACKER.md` for its tracked status.
