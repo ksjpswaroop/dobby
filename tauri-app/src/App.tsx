@@ -16,6 +16,7 @@ import Wizard from './pages/Wizard';
 import Yolo from './pages/Yolo';
 import GraphPage from './pages/GraphPage';
 import BacklogPage from './pages/BacklogPage';
+import BoardPage from './pages/Board';
 import Bulk from './pages/Bulk';
 import Settings from './pages/Settings';
 import Planned from './pages/Planned';
@@ -51,6 +52,7 @@ function App() {
         <Route path="/terminal" element={<Navigate to="/logs" replace />} />
         <Route path="/connections" element={<Connections />} />
         <Route path="/backlog" element={<BacklogPage />} />
+        <Route path="/board" element={<BoardPage />} />
         <Route path="/wizard" element={<Wizard />} />
         <Route path="/yolo" element={<Yolo />} />
         <Route path="/bulk" element={<Bulk />} />

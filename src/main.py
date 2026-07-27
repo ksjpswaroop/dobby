@@ -314,6 +314,11 @@ app.include_router(document_router)
 from src.api.copilot_routes import router as copilot_router
 app.include_router(copilot_router)
 
+# Include planning routes (board, sprints, milestones, blockers, OKRs,
+# daily plan, delivery analytics, work breakdown)
+from src.api.planning_routes import router as planning_router
+app.include_router(planning_router)
+
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])
