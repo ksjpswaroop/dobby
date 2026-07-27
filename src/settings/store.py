@@ -115,6 +115,10 @@ class Settings:
     # imports archives from other people.
     custom_rules: Dict[str, Any] = field(default_factory=dict)
 
+    # Output language for generated documents (D94). "en" is the default and
+    # appends nothing to prompts, so the English path is unchanged.
+    output_language: str = "en"
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 

@@ -335,6 +335,10 @@ app.include_router(habit_router)
 from src.api.quality_routes import router as quality_router
 app.include_router(quality_router)
 
+# Include platform routes (i18n, model catalog, in-app help, goals, ritual mode)
+from src.api.platform_routes import router as platform_router
+app.include_router(platform_router)
+
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])
