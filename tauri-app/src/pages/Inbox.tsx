@@ -71,11 +71,11 @@ export default function Inbox() {
     return () => window.clearInterval(t);
   }, [asks, load]);
 
-  const decide = async (ask: Ask, approved: boolean) => {
+  const decide = async (ask: Ask, approved: boolean, answerOverride?: string) => {
     setBusy(ask.id);
     try {
       const hours = approved && remember.has(ask.id) ? 24 : undefined;
-      await inboxApi.answer(ask.id, approved, reply[ask.id] || '', hours);
+      await inboxApi.answer(ask.id, approved, answerOverride ?? reply[ask.id] ?? '', hours);
       await load();
       toast(approved ? (hours ? 'Approved and remembered for 24h' : 'Approved')
                      : 'Denied', approved ? 'success' : 'info');
@@ -163,9 +163,24 @@ export default function Inbox() {
                       <span>· {ago(a.created_at)}</span>
                     </div>
 
+                    {a.options.length > 0 && (
+                      <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        {a.options.map((opt) => (
+                          <button
+                            key={opt}
+                            onClick={() => decide(a, true, opt)}
+                            disabled={busy === a.id}
+                            className="rounded-full border border-line px-2.5 py-1 text-[12px] text-ink transition-colors hover:border-brand hover:bg-brand/5 disabled:opacity-50"
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                     <input
                       className="input mt-2.5 w-full py-1.5 text-[12px]"
-                      placeholder="Add a note (optional)"
+                      placeholder={a.options.length ? 'Or write your own reply' : 'Add a note (optional)'}
                       value={reply[a.id] ?? ''}
                       onChange={(e) => setReply((p) => ({ ...p, [a.id]: e.target.value }))}
                     />

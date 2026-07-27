@@ -70,6 +70,13 @@ class Settings:
     openai_label: str = ""
     anthropic_api_key: str = ""
 
+    # Mirror new Inbox asks into a messaging channel (OW row 18). Empty means
+    # off. Configuring this *is* the consent — a notification that something
+    # needs approval is informational, not an action taken on the user's
+    # behalf, so it does not itself go through the approval gate.
+    inbox_mirror_connector: str = ""   # "" | slack | telegram
+    inbox_mirror_channel: str = ""
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 

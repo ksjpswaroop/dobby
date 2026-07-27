@@ -81,12 +81,14 @@ async def reconcile(project_id: str, db: DatabaseManager = Depends(get_db)):
 @router.post("/asks")
 async def create_ask(req: AskCreate, db: DatabaseManager = Depends(get_db)):
     try:
-        return svc.create_ask(
+        ask = svc.create_ask(
             db, req.project_id, req.title, req.capability, req.target,
             req.kind, req.detail, req.risk, req.options,
         )
     except svc.InboxError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    await svc.notify_mirror(db, ask)
+    return ask
 
 
 @router.get("/asks/{ask_id}")

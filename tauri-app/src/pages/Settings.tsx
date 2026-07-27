@@ -14,6 +14,7 @@ import {
   IconMoon,
   IconMonitor,
   IconResearch,
+  IconControl,
 } from '../lib/icons';
 
 /** Search backends for the Research stage. `remote` = the query leaves the machine. */
@@ -86,6 +87,8 @@ export default function Settings() {
   const [searxngUrl, setSearxngUrl] = useState('');
   const [wigoloUrl, setWigoloUrl] = useState('http://127.0.0.1:3333');
   const [symbolicaUrl, setSymbolicaUrl] = useState('');
+  const [mirrorConnector, setMirrorConnector] = useState('');
+  const [mirrorChannel, setMirrorChannel] = useState('');
 
   const [pullName, setPullName] = useState('');
   const [pulling, setPulling] = useState(false);
@@ -106,6 +109,8 @@ export default function Settings() {
       setSearxngUrl(s.searxng_url || '');
       setWigoloUrl(s.wigolo_url || 'http://127.0.0.1:3333');
       setSymbolicaUrl(s.symbolica_url || '');
+      setMirrorConnector(s.inbox_mirror_connector || '');
+      setMirrorChannel(s.inbox_mirror_channel || '');
       loadModels();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load settings');
@@ -163,6 +168,17 @@ export default function Settings() {
     try {
       setSettings(await api.updateSettings(patch));
       toast('Search settings saved', 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed to save', 'error');
+    }
+  };
+
+  const saveMirror = async (patch: Parameters<typeof api.updateSettings>[0]) => {
+    if (patch.inbox_mirror_connector !== undefined) setMirrorConnector(patch.inbox_mirror_connector);
+    if (patch.inbox_mirror_channel !== undefined) setMirrorChannel(patch.inbox_mirror_channel);
+    try {
+      setSettings(await api.updateSettings(patch));
+      toast('Mirror settings saved', 'success');
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed to save', 'error');
     }
@@ -468,6 +484,56 @@ npx wigolo init{'\n'}wigolo serve
               <span className="mt-1 block text-[11px] text-ink-muted">
                 Stored locally in ~/.dobby/settings.json. Search queries are sent to
                 this provider.
+              </span>
+            </label>
+          )}
+        </div>
+      </Section>
+
+      {/* Inbox mirroring */}
+      <Section
+        icon={<IconControl size={18} />}
+        title="Inbox mirroring"
+        description="Post a notification to Slack or Telegram whenever Dobby needs an approval decision. Off by default. Configuring this is the consent — a notification never itself needs approving."
+      >
+        <div className="space-y-3">
+          <div className="grid gap-2 sm:grid-cols-3">
+            {[
+              { id: '', label: 'Off' },
+              { id: 'slack', label: 'Slack' },
+              { id: 'telegram', label: 'Telegram' },
+            ].map((c) => (
+              <button
+                key={c.id}
+                onClick={() => saveMirror({ inbox_mirror_connector: c.id })}
+                aria-pressed={mirrorConnector === c.id}
+                className={
+                  'rounded-xl border px-3 py-2 text-sm font-medium transition-colors ' +
+                  (mirrorConnector === c.id
+                    ? 'border-brand bg-brand/5 text-brand'
+                    : 'border-line text-ink hover:border-brand/50')
+                }
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+          {mirrorConnector && (
+            <label className="block">
+              <span className="mb-1 block text-[12px] font-medium text-ink">
+                {mirrorConnector === 'slack' ? 'Slack channel' : 'Telegram chat'}
+              </span>
+              <input
+                className="input w-full"
+                placeholder={mirrorConnector === 'slack' ? '#approvals' : 'chat id'}
+                defaultValue={mirrorChannel}
+                onBlur={(e) => saveMirror({ inbox_mirror_channel: e.target.value.trim() })}
+              />
+              <span className="mt-1 block text-[11px] text-ink-muted">
+                {mirrorConnector === 'slack' ? 'Slack' : 'Telegram'} also needs its bot
+                credentials configured before this can send anything. There's no UI for
+                that yet — see <code className="rounded bg-surface2 px-1 py-px">POST
+                /api/v1/messaging/configure</code>.
               </span>
             </label>
           )}

@@ -40,6 +40,8 @@ class SettingsResponse(BaseModel):
     shell_allowlist: str = ""
     openai_base_url: str = ""
     openai_label: str = ""
+    inbox_mirror_connector: str = ""
+    inbox_mirror_channel: str = ""
 
     # API keys are deliberately absent from the response. The UI only ever needs
     # to know whether one is set, not what it is, so a stored secret is never
@@ -88,6 +90,16 @@ class SettingsUpdate(BaseModel):
     openai_api_key: str | None = None
     openai_label: str | None = None
     anthropic_api_key: str | None = None
+
+    inbox_mirror_connector: str | None = None
+    inbox_mirror_channel: str | None = None
+
+    @field_validator("inbox_mirror_connector")
+    @classmethod
+    def _known_mirror_connector(cls, v: str | None) -> str | None:
+        if v is not None and v not in ("", "slack", "telegram"):
+            raise ValueError("Mirror connector must be '', 'slack', or 'telegram'.")
+        return v
 
     @field_validator("search_provider")
     @classmethod

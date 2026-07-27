@@ -96,6 +96,8 @@ export interface AppSettings {
   wigolo_token: string;
   symbolica_url: string;
   symbolica_api_key: string;
+  inbox_mirror_connector: string;
+  inbox_mirror_channel: string;
 }
 
 export interface SettingsUpdate {
@@ -111,6 +113,8 @@ export interface SettingsUpdate {
   wigolo_token?: string;
   symbolica_url?: string;
   symbolica_api_key?: string;
+  inbox_mirror_connector?: string;
+  inbox_mirror_channel?: string;
 }
 
 export interface ModelInfo {

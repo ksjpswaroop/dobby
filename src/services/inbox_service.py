@@ -203,6 +203,40 @@ def create_ask(db: DatabaseManager, project_id: str, title: str,
     return out
 
 
+async def notify_mirror(db: DatabaseManager, ask: Dict[str, Any]) -> None:
+    """Post a new ask into the configured messaging channel (OW row 18).
+
+    Deliberately does not go through `messaging_service.reply()`'s approval
+    gate: the mirror *target* was explicitly configured by the user in
+    Settings, and that configuration is the consent. Re-asking permission to
+    send the notification that something needs a decision would be circular —
+    a notification is informational, not an action taken on the user's
+    behalf. Failure here is always best-effort: a messaging outage must never
+    block the ask itself from being created and usable in the Inbox.
+    """
+    from src.settings import get_settings
+
+    settings = get_settings()
+    connector_name = getattr(settings, "inbox_mirror_connector", "") or ""
+    channel = getattr(settings, "inbox_mirror_channel", "") or ""
+    if not connector_name or not channel:
+        return
+
+    try:
+        from src.services import messaging_service
+
+        connector = messaging_service.get_connector(connector_name)
+        if not connector.configured:
+            return
+        risk_tag = f"[{ask['risk']}]" if ask.get("risk") else ""
+        text = f"🔔 {risk_tag} Approval needed: {ask['title']}"
+        if ask.get("detail"):
+            text += f"\n{ask['detail'][:300]}"
+        await connector.send(channel, text)
+    except Exception as e:  # noqa: BLE001 — a mirror failure must never break the ask
+        logger.warning("inbox_mirror_failed", connector=connector_name, error=str(e))
+
+
 def get_ask(db: DatabaseManager, ask_id: str) -> Optional[Dict[str, Any]]:
     with db.get_session() as s:
         a = s.get(Ask, ask_id)
@@ -343,6 +377,7 @@ async def require(db: DatabaseManager, project_id: str, capability: str,
     )
     ask_id = ask["id"]
     event = _waiters.setdefault(ask_id, asyncio.Event())
+    await notify_mirror(db, ask)
 
     try:
         await asyncio.wait_for(event.wait(), timeout=timeout)

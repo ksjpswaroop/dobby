@@ -207,6 +207,112 @@ class TestRequireGate:
         assert svc.get_ask(db, out["ask_id"])["state"] == "approved"
 
 
+class _FakeSettings:
+    """Just enough of Settings for notify_mirror to read."""
+
+    def __init__(self, connector="", channel=""):
+        self.inbox_mirror_connector = connector
+        self.inbox_mirror_channel = channel
+
+
+class TestMirroring:
+    """OW row 18: a new ask can mirror into a messaging channel.
+
+    Configuring the mirror target *is* the consent — a notification about an
+    ask must never itself require approval, or creating an ask would deadlock
+    waiting on notifying about the ask.
+    """
+
+    @pytest.mark.asyncio
+    async def test_nothing_is_sent_when_no_mirror_is_configured(self, db, monkeypatch):
+        monkeypatch.setattr("src.settings.get_settings", lambda: _FakeSettings())
+
+        def fail_if_called(name):
+            raise AssertionError("get_connector should not be reached when unconfigured")
+
+        monkeypatch.setattr("src.services.messaging_service.get_connector", fail_if_called)
+        ask = svc.create_ask(db, PROJECT, "Unmirrored")
+        await svc.notify_mirror(db, ask)  # must return quietly, calling nothing
+
+    @pytest.mark.asyncio
+    async def test_a_configured_mirror_sends_a_notification(self, db, monkeypatch):
+        from src.connectors.base import SlackConnector
+        from src.services import messaging_service
+
+        messaging_service.configure("slack", {
+            "bot_token": "xoxb-test", "signing_secret": "s3cr3t",
+        })
+        monkeypatch.setattr("src.settings.get_settings",
+                            lambda: _FakeSettings("slack", "C-approvals"))
+
+        sent = {}
+
+        async def fake_send(self, channel, text, thread=None):
+            sent.update({"channel": channel, "text": text})
+            return {"ts": "1.0"}
+
+        monkeypatch.setattr(SlackConnector, "send", fake_send)
+
+        ask = svc.create_ask(db, PROJECT, "Reach api.example?", capability="net.fetch",
+                             target="api.example", risk="high")
+        await svc.notify_mirror(db, ask)
+
+        assert sent["channel"] == "C-approvals"
+        assert "Reach api.example?" in sent["text"]
+        assert "high" in sent["text"]
+
+    @pytest.mark.asyncio
+    async def test_a_messaging_failure_never_raises(self, db, monkeypatch):
+        """A mirror outage must never break the ask it was notifying about."""
+        from src.connectors.base import SlackConnector
+        from src.services import messaging_service
+
+        messaging_service.configure("slack", {
+            "bot_token": "xoxb-test", "signing_secret": "s3cr3t",
+        })
+        monkeypatch.setattr("src.settings.get_settings",
+                            lambda: _FakeSettings("slack", "C-approvals"))
+
+        async def boom(self, channel, text, thread=None):
+            raise RuntimeError("slack is down")
+
+        monkeypatch.setattr(SlackConnector, "send", boom)
+
+        ask = svc.create_ask(db, PROJECT, "Should not raise")
+        await svc.notify_mirror(db, ask)  # no exception propagates
+
+    @pytest.mark.asyncio
+    async def test_require_notifies_the_mirror_when_configured(self, db, monkeypatch):
+        """The main path every gated action goes through must also notify."""
+        from src.connectors.base import SlackConnector
+        from src.services import messaging_service
+
+        messaging_service.configure("slack", {
+            "bot_token": "xoxb-test", "signing_secret": "s3cr3t",
+        })
+        monkeypatch.setattr("src.settings.get_settings",
+                            lambda: _FakeSettings("slack", "C-approvals"))
+
+        sent = {}
+
+        async def fake_send(self, channel, text, thread=None):
+            sent["text"] = text
+            return {"ts": "1.0"}
+
+        monkeypatch.setattr(SlackConnector, "send", fake_send)
+
+        async def approve_shortly():
+            await asyncio.sleep(0.1)
+            pending = svc.list_asks(db, PROJECT, state="pending")
+            target = next(a for a in pending if a["title"] == "Mirrored gate")
+            svc.answer_ask(db, target["id"], approved=True)
+
+        task = asyncio.create_task(approve_shortly())
+        await svc.require(db, PROJECT, "net.fetch", "x.example", "Mirrored gate", timeout=5)
+        await task
+        assert "Mirrored gate" in sent.get("text", "")
+
+
 class TestApi:
     def test_meta_lists_capabilities(self, client):
         r = client.get("/api/v1/inbox/meta")
