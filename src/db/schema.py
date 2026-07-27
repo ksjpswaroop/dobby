@@ -376,7 +376,8 @@ class DatabaseManager:
             automation_models, collab_models, copilot_models, decision_models,
             document_models, idea_models, inbox_models, integration_models,
             license_models, mindmap_models, pin_models, planning_models,
-            research_models, run_models, session_models, trust_models,
+            research_models, run_models, session_models, skill_models,
+            trust_models,
         )
 
         # Create all tables

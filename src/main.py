@@ -76,13 +76,17 @@ async def lifespan(app: FastAPI):
     # Seed the built-in prompt library. Idempotent, so it only ever inserts
     # what a given install is missing.
     from src.services.prompt_library import seed_builtins
+    from src.services.skill_service import seed_builtins as seed_skills
 
     try:
         seeded = seed_builtins(app.state.db)
         if seeded:
             logger.info("prompt_library_seeded", added=seeded)
+        seeded_skills = seed_skills(app.state.db)
+        if seeded_skills:
+            logger.info("skills_seeded", added=seeded_skills)
     except Exception:
-        logger.warning("prompt_seed_failed", exc_info=True)
+        logger.warning("seed_failed", exc_info=True)
 
     # Mint this launch's API token before anything can serve a request.
     from src.security.tokens import get_token_manager
@@ -353,6 +357,10 @@ app.include_router(shared_router)
 # Include decision routes (the forks work waits behind)
 from src.api.decision_routes import router as decision_router
 app.include_router(decision_router)
+
+# Include skill routes (Skill Studio: intent, sources, guardrails, approval)
+from src.api.skill_routes import router as skill_router
+app.include_router(skill_router)
 
 # Include work-graph routes (how goals, projects, decisions and skills connect)
 from src.api.workgraph_routes import router as workgraph_router
