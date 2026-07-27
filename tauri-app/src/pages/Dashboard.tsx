@@ -4,6 +4,7 @@ import api, { DashboardData } from '../api/client';
 import { Card, LoadingState, ErrorState, Badge, Button, PageHeader } from '../components/ui';
 import { PinnedStrip } from '../components/PinnedStrip';
 import { TodayHome } from '../components/TodayHome';
+import { Onboarding } from '../components/Onboarding';
 import { useProject } from '../lib/project';
 import {
   IconWizard,
@@ -103,6 +104,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <PageHeader title="Today" subtitle="Your local document workspace at a glance." />
 
+      <Onboarding />
       <PinnedStrip />
       <TodayHome />
 

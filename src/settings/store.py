@@ -77,6 +77,11 @@ class Settings:
     inbox_mirror_connector: str = ""   # "" | slack | telegram
     inbox_mirror_channel: str = ""
 
+    # The only onboarding state worth storing: whether the builder dismissed
+    # it. Which steps are *done* is derived from real data, so the checklist
+    # can never disagree with the app.
+    onboarding_dismissed: bool = False
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 

@@ -318,3 +318,18 @@ async def get_home(project_id: str, db: DatabaseManager = Depends(get_db)) -> Di
     from src.services.home_service import build_home
 
     return build_home(db, project_id)
+
+
+@router.get("/projects/{project_id}/onboarding")
+async def get_onboarding(project_id: str, db: DatabaseManager = Depends(get_db)) -> Dict[str, Any]:
+    """First-run checklist, with each step's state derived from real data."""
+    from src.services.onboarding_service import build_checklist
+
+    return build_checklist(db, project_id)
+
+
+@router.post("/onboarding/dismiss")
+async def dismiss_onboarding(dismissed: bool = True) -> Dict[str, Any]:
+    from src.services.onboarding_service import set_dismissed
+
+    return set_dismissed(dismissed)
