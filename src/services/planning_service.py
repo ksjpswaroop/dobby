@@ -245,9 +245,19 @@ def list_blockers(db: DatabaseManager, project_id: str,
 
 
 def ready_features(db: DatabaseManager, project_id: str) -> List[Dict[str, Any]]:
-    """Unblocked, unfinished work, best value first — the ready set."""
+    """Unblocked, unfinished work, best value first — the ready set.
+
+    Work waiting on an *open decision* is excluded alongside work waiting on
+    an unfinished blocker. A fork nobody has taken yet blocks progress just as
+    hard as an unbuilt prerequisite, and treating it otherwise is how a
+    "ready" list fills up with things nobody can actually start.
+    """
+    from src.services import decision_service
+
+    decision_blocked = decision_service.blocked_entity_ids(db, project_id, "feature")
+
     with db.get_session() as s:
-        blocked = _blocked_ids(s, project_id)
+        blocked = _blocked_ids(s, project_id) | decision_blocked
         features = (s.query(FeatureBacklog)
                     .filter(FeatureBacklog.project_id == project_id).all())
         out = []

@@ -27,8 +27,14 @@ from src.db.schema import DatabaseManager, FeatureBacklog, Node
 # valuable (a high-scoring feature you could start).
 WEIGHTS = {
     "pending_ask": 100,
+    # An overdue decision outranks a failed run: everything waiting behind an
+    # untaken fork is stalled, whereas a failed run has usually stalled one
+    # thing. Listed in descending order so the ranking is readable here.
+    "overdue_decision": 95,
     "failed_run": 90,
     "failed_verification": 85,
+    "decision_due_soon": 65,
+    "decision_blocking": 62,
     "untriaged_ideas": 60,
     "unresolved_comments": 55,
     "review_waiting": 50,
@@ -70,6 +76,34 @@ def compute(db: DatabaseManager, project_id: str) -> List[Dict[str, Any]]:
                 "Something you started did not finish.",
                 "/logs", failed))
 
+    # Decisions are read through their own service so the open/overdue rules
+    # live in one place rather than being re-derived here.
+    from src.services import decision_service
+
+    pending = decision_service.pending_summary(db, project_id)
+    urgent = pending.get("most_urgent")
+    if urgent:
+        if urgent["overdue"]:
+            out.append(_suggest(
+                "overdue_decision", f"Decide: {urgent['title']}",
+                "This was due already and work is waiting behind it."
+                if urgent["blocking_count"] else "This was due already.",
+                "/decisions"))
+        elif urgent["due_soon"]:
+            out.append(_suggest(
+                "decision_due_soon", f"Decide: {urgent['title']}",
+                f"Due in {urgent['days_until_due']} day"
+                f"{'s' if urgent['days_until_due'] != 1 else ''}.",
+                "/decisions"))
+        elif urgent["blocking_count"]:
+            out.append(_suggest(
+                "decision_blocking", f"Decide: {urgent['title']}",
+                f"{urgent['blocking_count']} piece"
+                f"{'s' if urgent['blocking_count'] != 1 else ''} of work "
+                "cannot start until this is settled.",
+                "/decisions", urgent["blocking_count"]))
+
+    with db.get_session() as s:
         untriaged = s.query(Idea).filter(Idea.project_id == project_id,
                                          Idea.status == "inbox").count()
         if untriaged:

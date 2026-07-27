@@ -350,6 +350,10 @@ from src.api.collab_routes import public_router as shared_router
 app.include_router(collab_router)
 app.include_router(shared_router)
 
+# Include decision routes (the forks work waits behind)
+from src.api.decision_routes import router as decision_router
+app.include_router(decision_router)
+
 # Include vault + pipeline-builder routes (encryption at rest, composable pipelines)
 from src.api.vault_routes import router as vault_router
 from src.api.vault_routes import pipeline_router
