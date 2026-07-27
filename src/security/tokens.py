@@ -122,6 +122,15 @@ def is_open_path(path: str) -> bool:
     # signature-checked read.
     if path == "/api/v1/license/verify":
         return True
+    # Read-only share links exist precisely for people with no account on this
+    # install, so they cannot present a launch token. The safety comes from
+    # the token itself: 256 bits of entropy, stored hashed, revocable,
+    # expirable, and resolved by a function with no write path at all.
+    if path.startswith("/api/v1/shared/"):
+        return True
+    # Signing in is how a member *gets* a credential, so it cannot require one.
+    if path in ("/api/v1/collab/auth/sign-in", "/api/v1/collab/members/accept"):
+        return True
     # FastAPI's docs pull static assets from this prefix.
     return path.startswith("/docs") or path.startswith("/redoc")
 

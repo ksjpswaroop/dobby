@@ -343,6 +343,13 @@ app.include_router(platform_router)
 from src.api.integration_routes import router as integration_router
 app.include_router(integration_router)
 
+# Include collaboration routes (members, roles, share links, reviews,
+# mentions, presence, publishing) plus the public share resolver
+from src.api.collab_routes import router as collab_router
+from src.api.collab_routes import public_router as shared_router
+app.include_router(collab_router)
+app.include_router(shared_router)
+
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])
