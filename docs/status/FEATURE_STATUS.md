@@ -1,6 +1,6 @@
 # Dobby — Feature Status & Test Evidence
 
-**As of 2026-07-27** · branch `feat/dobby-v2-workbench` · 901 backend tests passing
+**As of 2026-07-27** · branch `feat/dobby-v2-workbench` · 1009 backend tests passing
 
 This document records every shipped feature, how to test it yourself step by
 step, and the actual output captured when it was verified. Commands are
@@ -32,7 +32,7 @@ Full test suite:
 cd /Users/swaroop/projects/09-dobby && source .venv/bin/activate && python -m pytest tests/ -q
 ```
 
-Captured result: `901 passed, 2691 warnings in 21.41s`
+Captured result: `1009 passed, 3204 warnings in 21.80s`
 
 ---
 
@@ -43,12 +43,12 @@ Captured result: `901 passed, 2691 warnings in 21.41s`
 | 1 — Daily Home & Frictionless Capture | 1–10 | **10/10 done** |
 | 2 — Living Documents | 11–20 | **10/10 done** |
 | 3 — AI Copilot | 21–30 | **9 done, 1 partial (D29)** |
-| 4 — Capture++ & Multimodal | 31–40 | 1/10 (D31 Transcribe) |
+| 4 — Capture++ & Multimodal | 31–40 | **8/10** (D36, D37 deferred — need infrastructure) |
 | 5 — Planning & PM | 41–50 | **10/10 done** |
 | 6 — Integrations | 51–60 | 1/10 (D56 superseded) |
 | 7 — Collaboration & Sharing | 61–70 | not started |
-| 8 — Habit, Delight & Retention | 71–80 | not started |
-| 9 — Quality, Trust & Power | 81–90 | **4/10** (D84, D86, D87, D90) |
+| 8 — Habit, Delight & Retention | 71–80 | **9/10** (D77 partial) |
+| 9 — Quality, Trust & Power | 81–90 | **8/10** (D88 not started, D89 deferred) |
 | 10 — Scale, Ecosystem & Ritual | 91–100 | not started |
 
 Separately, the `OW · Features` parity tracker stands at 45 Done / 7 Partial /
