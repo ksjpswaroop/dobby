@@ -44,7 +44,19 @@ def db(client):
 
 class TestEmptyState:
     def test_clear_when_nothing_waiting(self, db):
-        home = svc.build_home(db, PROJECT)
+        # A project of its own, not the shared default one. Every test module
+        # sets DOBBY_DB_PATH at import time but `src.main` is imported once,
+        # so the whole suite shares whichever database won that race — and an
+        # assertion about global emptiness then depends on file ordering
+        # rather than on the behaviour being tested.
+        from src.db.schema import Project
+
+        empty_id = f"empty-{uuid.uuid4().hex[:8]}"
+        with db.get_session() as s:
+            s.add(Project(id=empty_id, name="Empty project"))
+            s.commit()
+
+        home = svc.build_home(db, empty_id)
         assert home["clear"] is True
         assert home["needs_decision"] == []
         assert home["needs_triage"] == []

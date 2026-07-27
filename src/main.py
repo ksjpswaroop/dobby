@@ -323,6 +323,10 @@ app.include_router(planning_router)
 from src.api.trust_routes import router as trust_router
 app.include_router(trust_router)
 
+# Include capture routes (URL, email, OCR, bulk import, meeting notes, dedupe)
+from src.api.capture_routes import router as capture_router
+app.include_router(capture_router)
+
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])
