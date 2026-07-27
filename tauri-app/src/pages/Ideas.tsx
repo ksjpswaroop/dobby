@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { ideasApi, type Idea, type IdeaStatus } from '../features/ideas/api';
+import { pinsApi } from '../features/pins/api';
 import {
   Badge, Button, Card, CardBody, EmptyState, PageHeader, Spinner,
 } from '../components/ui';
-import { IconBulb, IconResearch, IconBacklog, IconTrash, IconCheck } from '../lib/icons';
+import { IconBulb, IconResearch, IconBacklog, IconTrash, IconCheck, IconPin } from '../lib/icons';
 import { useProject } from '../lib/project';
 import { useToast } from '../lib/toast';
 
@@ -29,13 +30,39 @@ export default function Ideas() {
   const [text, setText] = useState('');
   const [capturing, setCapturing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
+
+  const loadPins = () => {
+    pinsApi.list(projectId)
+      .then((r) => setPinnedIds(new Set(
+        r.pins.filter((p) => p.entity_type === 'idea').map((p) => p.entity_id)
+      )))
+      .catch(() => {});
+  };
 
   const load = () => {
     setLoading(true);
+    loadPins();
     ideasApi.list(projectId, tab === 'all' ? undefined : tab)
       .then((r) => setIdeas(r.ideas))
       .catch(() => setIdeas([]))
       .finally(() => setLoading(false));
+  };
+
+  const togglePin = async (ideaId: string) => {
+    const isPinned = pinnedIds.has(ideaId);
+    setPinnedIds((prev) => {
+      const next = new Set(prev);
+      isPinned ? next.delete(ideaId) : next.add(ideaId);
+      return next;
+    });
+    try {
+      if (isPinned) await pinsApi.unpin(projectId, 'idea', ideaId);
+      else await pinsApi.pin(projectId, 'idea', ideaId);
+      toast(isPinned ? 'Unpinned' : 'Pinned', 'success');
+    } catch {
+      loadPins();
+    }
   };
 
   useEffect(load, [projectId, tab]);
@@ -124,6 +151,16 @@ export default function Ideas() {
               <CardBody className="flex items-start gap-3 py-3.5">
                 <p className="min-w-0 flex-1 text-sm text-ink">{idea.text}</p>
                 <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    onClick={() => togglePin(idea.id)}
+                    aria-label={pinnedIds.has(idea.id) ? 'Unpin this idea' : 'Pin this idea'}
+                    className={`rounded-lg p-1.5 transition-colors ${
+                      pinnedIds.has(idea.id)
+                        ? 'text-brand' : 'text-ink-muted hover:text-ink'
+                    }`}
+                  >
+                    <IconPin size={14} />
+                  </button>
                   {idea.status === 'inbox' ? (
                     <>
                       <Button

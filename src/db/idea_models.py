@@ -40,7 +40,6 @@ class Idea(Base):
     promoted_feature_id = Column(String)
     promoted_brief_id = Column(String)
 
-    pinned = Column(String, default="")  # non-empty = pinned; see pin_models.py
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

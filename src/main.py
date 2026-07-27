@@ -286,6 +286,10 @@ app.include_router(idea_router)
 from src.api.timeline_routes import router as timeline_router
 app.include_router(timeline_router)
 
+# Include pins & favorites routes (generic across ideas/features/documents)
+from src.api.pin_routes import router as pin_router
+app.include_router(pin_router)
+
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])

@@ -85,22 +85,6 @@ async def archive_idea(idea_id: str, db: DatabaseManager = Depends(get_db)):
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@router.post("/{idea_id}/pin")
-async def pin_idea(idea_id: str, db: DatabaseManager = Depends(get_db)):
-    try:
-        return svc.set_pinned(db, idea_id, True)
-    except svc.IdeaError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-
-@router.post("/{idea_id}/unpin")
-async def unpin_idea(idea_id: str, db: DatabaseManager = Depends(get_db)):
-    try:
-        return svc.set_pinned(db, idea_id, False)
-    except svc.IdeaError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-
 @router.delete("/{idea_id}")
 async def delete_idea(idea_id: str, db: DatabaseManager = Depends(get_db)):
     if not svc.delete(db, idea_id):

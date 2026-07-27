@@ -1,9 +1,10 @@
 import type { NavigateFunction } from 'react-router-dom';
 import api from '../api/client';
+import { pinsApi } from '../features/pins/api';
 import { ALL_ITEMS } from './nav';
 import {
   IconBolt, IconPlus, IconLayers, IconWizard, IconCpu,
-  IconRefresh, IconTrash, IconSun, IconMoon, IconMonitor, IconDoc,
+  IconRefresh, IconTrash, IconSun, IconMoon, IconMonitor, IconDoc, IconPin,
 } from './icons';
 
 export type CommandKind = 'action' | 'navigate' | 'model' | 'result';
@@ -180,5 +181,27 @@ export async function buildModelCommands(ctx: CommandContext): Promise<Command[]
     }));
   } catch {
     return []; // Ollama offline — the palette still works without model commands
+  }
+}
+
+/** Pinned items, surfaced at the top of the palette as their own group. */
+export async function buildPinCommands(ctx: CommandContext): Promise<Command[]> {
+  try {
+    const { pins } = await pinsApi.list(ctx.projectId);
+    return pins.map((p) => ({
+      id: `pin.${p.id}`,
+      label: p.title,
+      hint: p.entity_type,
+      group: 'Pinned',
+      icon: IconPin,
+      keywords: `pinned favorite ${p.entity_type} ${p.title}`,
+      kind: 'navigate' as const,
+      run: () => {
+        ctx.navigate(p.route);
+        ctx.close();
+      },
+    }));
+  } catch {
+    return [];
   }
 }

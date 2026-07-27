@@ -97,22 +97,6 @@ class TestTriage:
             svc.triage_to_backlog(db, "no-such-idea")
 
 
-class TestPinning:
-    def test_pin_then_unpin(self, db):
-        idea = svc.capture(db, PROJECT, "pin me")
-        pinned = svc.set_pinned(db, idea["id"], True)
-        assert pinned["pinned"] is True
-        unpinned = svc.set_pinned(db, idea["id"], False)
-        assert unpinned["pinned"] is False
-
-    def test_pinned_ideas_sort_first(self, db):
-        svc.capture(db, PROJECT, "not pinned")
-        pin_me = svc.capture(db, PROJECT, "pin sort check")
-        svc.set_pinned(db, pin_me["id"], True)
-        ideas = svc.list_ideas(db, PROJECT)
-        assert ideas[0]["id"] == pin_me["id"]
-
-
 class TestDelete:
     def test_delete_removes_it(self, db):
         idea = svc.capture(db, PROJECT, "delete me")

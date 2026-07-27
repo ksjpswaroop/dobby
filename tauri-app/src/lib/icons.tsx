@@ -310,6 +310,12 @@ export const IconBulb = (p: IconProps) => (
     <path d="M12 3a6 6 0 0 0-3.5 10.9c.6.44 1 1.16 1 1.94V16h5v-.16c0-.78.4-1.5 1-1.94A6 6 0 0 0 12 3Z" />
   </Icon>
 );
+export const IconPin = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 17v5" />
+    <path d="M9 3h6l-.7 5.2a2 2 0 0 0 .6 1.7l1.9 1.8a1 1 0 0 1-.7 1.7H7.9a1 1 0 0 1-.7-1.7l1.9-1.8a2 2 0 0 0 .6-1.7L9 3Z" />
+  </Icon>
+);
 /** A clock with a trailing sweep — recent activity, not a literal deadline. */
 export const IconActivity = (p: IconProps) => (
   <Icon {...p}>

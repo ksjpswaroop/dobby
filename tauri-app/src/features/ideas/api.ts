@@ -22,7 +22,6 @@ export interface Idea {
   status: IdeaStatus;
   promoted_feature_id: string | null;
   promoted_brief_id: string | null;
-  pinned: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -43,9 +42,6 @@ export const ideasApi = {
     req<Idea>('POST', `/${ideaId}/triage/research`),
 
   archive: (ideaId: string) => req<Idea>('POST', `/${ideaId}/archive`),
-
-  pin: (ideaId: string) => req<Idea>('POST', `/${ideaId}/pin`),
-  unpin: (ideaId: string) => req<Idea>('POST', `/${ideaId}/unpin`),
 
   remove: (ideaId: string) => req<{ success: boolean }>('DELETE', `/${ideaId}`),
 };

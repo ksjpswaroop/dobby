@@ -28,7 +28,6 @@ def _idea_dict(idea: Idea) -> Dict[str, Any]:
         "status": idea.status,
         "promoted_feature_id": idea.promoted_feature_id,
         "promoted_brief_id": idea.promoted_brief_id,
-        "pinned": bool(idea.pinned),
         "created_at": idea.created_at.isoformat() if idea.created_at else None,
         "updated_at": idea.updated_at.isoformat() if idea.updated_at else None,
     }
@@ -61,7 +60,7 @@ def list_ideas(db: DatabaseManager, project_id: str, status: Optional[str] = Non
         q = s.query(Idea).filter(Idea.project_id == project_id)
         if status:
             q = q.filter(Idea.status == status)
-        rows = q.order_by(Idea.pinned.desc(), Idea.created_at.desc()).all()
+        rows = q.order_by(Idea.created_at.desc()).all()
         return [_idea_dict(i) for i in rows]
 
 
@@ -71,17 +70,6 @@ def archive(db: DatabaseManager, idea_id: str) -> Dict[str, Any]:
         if not idea:
             raise IdeaError("Idea not found.")
         idea.status = "archived"
-        idea.updated_at = datetime.utcnow()
-        s.commit()
-        return _idea_dict(idea)
-
-
-def set_pinned(db: DatabaseManager, idea_id: str, pinned: bool) -> Dict[str, Any]:
-    with db.get_session() as s:
-        idea = s.get(Idea, idea_id)
-        if not idea:
-            raise IdeaError("Idea not found.")
-        idea.pinned = "1" if pinned else ""
         idea.updated_at = datetime.utcnow()
         s.commit()
         return _idea_dict(idea)

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/cn';
-import { buildCommands, buildModelCommands, type Command } from '../lib/commands';
+import { buildCommands, buildModelCommands, buildPinCommands, type Command } from '../lib/commands';
 import { useTheme } from '../lib/theme';
 import { useToast } from '../lib/toast';
 import { useProject } from '../lib/project';
@@ -28,6 +28,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
   const [models, setModels] = useState<Command[]>([]);
+  const [pinned, setPinned] = useState<Command[]>([]);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -38,11 +39,17 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     [navigate, toast, setTheme, projectId, onClose]
   );
 
-  const commands = useMemo(() => [...buildCommands(ctx), ...models], [ctx, models]);
+  // Pinned first: the builder's current focus should always be fastest to reach.
+  const commands = useMemo(
+    () => [...pinned, ...buildCommands(ctx), ...models],
+    [ctx, models, pinned]
+  );
 
   // Load model-switch commands once the palette first opens.
   useEffect(() => {
     if (open && models.length === 0) buildModelCommands(ctx).then(setModels);
+    // Pins change often, so refresh them on every open rather than once.
+    if (open) buildPinCommands(ctx).then(setPinned);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -78,7 +85,12 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    if (!term) return commands.filter((c) => c.group === 'Actions').slice(0, 8);
+    if (!term) {
+      return [
+        ...commands.filter((c) => c.group === 'Pinned'),
+        ...commands.filter((c) => c.group === 'Actions').slice(0, 8),
+      ];
+    }
     return commands.filter(
       (c) =>
         c.label.toLowerCase().includes(term) ||
