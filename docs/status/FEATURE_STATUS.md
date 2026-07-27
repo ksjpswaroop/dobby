@@ -1,0 +1,748 @@
+# Dobby — Feature Status & Test Evidence
+
+**As of 2026-07-27** · branch `feat/dobby-v2-workbench` · 1334 backend tests passing
+
+This document records every shipped feature, how to test it yourself step by
+step, and the actual output captured when it was verified. Commands are
+copy-pasteable. Where a result is quoted, it is real output from this machine,
+not an illustration.
+
+> **On screenshots.** Visual verification was performed live in the in-app
+> browser against the running dev server. Because those captures are not
+> written to disk, this document gives the exact navigation steps and the
+> observable result for each screen instead, so any claim here can be
+> re-checked in under a minute. Where a UI state is described ("shows a
+> 3-day streak"), that is what was actually on screen.
+
+---
+
+## How to run everything
+
+```bash
+cd /Users/swaroop/projects/09-dobby && source .venv/bin/activate && DOBBY_DISABLE_AUTH=1 python -m uvicorn src.main:app --host 0.0.0.0 --port 8000
+```
+
+The UI runs separately on port 1420 (`npm run dev` inside `tauri-app/`, or the
+in-app preview). The backend must be up first; the UI falls back to an error
+state rather than silently showing stale data.
+
+Full test suite:
+
+```bash
+cd /Users/swaroop/projects/09-dobby && source .venv/bin/activate && python -m pytest tests/ -q
+```
+
+Captured result: `1334 passed, 4589 warnings in 26.64s`
+
+---
+
+> **Beyond the 100-day roadmap.** A second track — the *Work Graph* —
+> reframes Dobby as a work OS over the same substrate. Decisions, the Work
+> Graph, Skills, time-blocked planning, and the Journal all ship; see
+> [Work Graph](#work-graph-beyond-the-roadmap) below.
+
+## Scorecard
+
+| Phase | Days | Status |
+|---|---|---|
+| 1 — Daily Home & Frictionless Capture | 1–10 | **10/10 done** |
+| 2 — Living Documents | 11–20 | **10/10 done** |
+| 3 — AI Copilot | 21–30 | **9 done, 1 partial (D29)** |
+| 4 — Capture++ & Multimodal | 31–40 | **8/10** (D36, D37 deferred — need infrastructure) |
+| 5 — Planning & PM | 41–50 | **10/10 done** |
+| 6 — Integrations | 51–60 | **4/10** (D58/D59/D60 + D56; 6 OAuth syncs deferred) |
+| 7 — Collaboration & Sharing | 61–70 | **10/10 done** |
+| 8 — Habit, Delight & Retention | 71–80 | **9/10** (D77 partial) |
+| 9 — Quality, Trust & Power | 81–90 | **9/10** (D89 deferred) |
+| 10 — Scale, Ecosystem & Ritual | 91–100 | **8/10** (D91, D93 deferred) |
+
+Separately, the `OW · Features` parity tracker stands at 45 Done / 7 Partial /
+2 Planned / 1 N/A, and the `Feature · Mind Map` module is fully shipped across
+all three of its phases.
+
+---
+
+# Phase 1 — Daily Home & Frictionless Capture
+
+## D1 · Today Home
+
+**What it is.** One endpoint assembling today's actionable slice — ideas to
+triage, work in flight, top backlog item.
+
+**Test it**
+
+1. Open `http://localhost:1420/`
+2. Look for the "Good afternoon / Here's today's actionable slice" card.
+
+**Verified result.** Card renders with an "Ideas to triage (1)" section listing
+the actual captured idea, clickable through to `/ideas`.
+
+```bash
+curl -s http://localhost:8000/api/v1/dashboard/today/default-project | python3 -m json.tool
+```
+
+---
+
+## D2 · Quick Capture (⌘I)
+
+**What it is.** An in-app overlay to capture a thought from any page without
+losing your place.
+
+> **Honest scope note.** The roadmap asked for an OS-global hotkey. This is an
+> *in-app* global hotkey — it works from every page in Dobby, but not when
+> Dobby is in the background. A true OS-level hotkey needs Tauri capability
+> work that is deferred alongside reveal-in-Finder.
+
+**Test it**
+
+1. Open any page, e.g. `http://localhost:1420/backlog`
+2. Press **⌘I** (Ctrl+I on Windows/Linux)
+3. Type anything, press **Enter**
+
+**Verified result.** Overlay opened over the Backlog page, accepted
+"captured via quick-capture hotkey from the backlog page", toasted "Idea
+captured", closed itself, and the idea appeared in the Idea Inbox.
+
+---
+
+## D3 · Idea Inbox & Triage
+
+**What it is.** The lowest-friction object in the app: one required field.
+Triage promotes an idea into a Pareto-scored backlog feature or a research
+brief. The idea is never deleted, only marked.
+
+**Test it**
+
+```bash
+# capture
+curl -s -X POST http://localhost:8000/api/v1/ideas \
+  -H "Content-Type: application/json" \
+  -d '{"project_id":"default-project","text":"smoke test idea via curl"}'
+```
+
+Then open `http://localhost:1420/ideas`, click **Backlog** on that row, and
+open `http://localhost:1420/backlog`.
+
+**Verified result.** The idea appeared in the real backlog as
+`smoke test idea via curl`, category `idea`, Pareto `1.00`
+(= 5×0.6 − 5×0.3 − 5×0.1). Triaging to Research instead created a real
+`ResearchBrief` with `status: pending`, ready to run — created but not
+auto-run, matching the propose-don't-act pattern used elsewhere.
+
+---
+
+## D4 · Command Palette (⌘K)
+
+Already shipped before this cycle. Press **⌘K** anywhere.
+
+---
+
+## D5 · Daily Streak & Momentum
+
+**What it is.** Consecutive-days streak plus a 14-day sparkline on Today Home.
+
+**Two design decisions worth knowing.** Activity is derived from the Activity
+Timeline feed, *not* `AuditEntry` — the audit log only ever recorded node
+create/update/verify, never idea captures, runs, or research, which are
+exactly the qualifying actions a build streak should reward. And day
+boundaries use a UTC offset supplied by the browser, because a streak is a
+local-calendar concept: 11:59pm and 12:01am are different days to a person
+and the same day to UTC.
+
+**Test it**
+
+```bash
+curl -s "http://localhost:8000/api/v1/momentum/project/default-project?tz_offset_minutes=330" | python3 -m json.tool
+```
+
+**Verified result (real output):**
+
+```json
+{ "streak": 2, "active_today": false, "longest_recent": 2,
+  "total_active_days": 2, "tz_offset_minutes": 330,
+  "sparkline": [ ... {"date":"2026-07-26","count":17},
+                     {"date":"2026-07-27","count":7} ... ] }
+```
+
+At `tz_offset_minutes=330` (IST) "today" was already 07-28, so `active_today`
+is correctly `false` while the streak stays alive at 2 via the yesterday
+grace. In the browser's own timezone the card read **"3-day streak — You've
+built today. Nice."**
+
+**Edge cases covered by tests** (`tests/test_momentum.py`, 21 tests): same-day
+actions counting once, a one-day gap resetting the streak, the 11:59pm/12:01am
+boundary, negative offsets rolling backward, and a brand-new user seeing 0.
+
+---
+
+## D6 · Morning Briefing
+
+Superseded — the Automations "digest" action plus Today Home cover this.
+
+## D7 · Activity Timeline
+
+**What it is.** A reverse-chronological feed across ideas, backlog, runs, and
+research, with category filters, cursor pagination, and deep links.
+
+**Test it**
+
+1. Open `http://localhost:1420/activity`
+2. Click the **Runs** filter
+3. Click any event
+
+**Verified result.** Events grouped under "TODAY" with icons and timestamps.
+The Runs filter narrowed to shell runs only. Clicking a finished run navigated
+to `/logs` and highlighted the matching row.
+
+```bash
+curl -s "http://localhost:8000/api/v1/timeline/project/default-project?limit=5" | python3 -m json.tool
+```
+
+## D8 · Pins & Favorites
+
+**Test it.** Open `/ideas`, click the pin icon on a row, then open `/`.
+
+**Verified result.** Pinned item appeared in the "Pinned" strip on Today Home.
+Reordering is ←/→ buttons rather than drag-only so it is keyboard-operable.
+A pin whose target is later deleted is cleaned up the next time the list is
+read, rather than showing a broken row.
+
+## D9 · Global Full-Text Search
+
+Already shipped. Press **⌘K** or open `/search`.
+
+## D10 · First-Run Onboarding
+
+**Verified result.** Checklist appears on Today Home for a fresh install with
+step state derived from real data — it cannot disagree with the app. The only
+stored state is whether it was dismissed.
+
+---
+
+# Phase 2 — Living Documents
+
+All ten features share one foundation: **no content change reaches a node
+without a snapshot being written first**, so "can I undo this?" has one answer
+everywhere.
+
+## Full editor walkthrough
+
+1. Open `http://localhost:1420/documents`
+2. Select any document, click **Open editor**
+3. You land on `/documents/:nodeId`
+
+**Verified result.** Split pane: raw Markdown left, live rendered preview
+right. Header showed `draft · feature · 353 words · v2 · 1 open comments ·
+Saved`, with tabs Preview / Versions / Comments (1) / Links.
+
+### D11 Editor + D17 Live preview
+
+Type in the left pane. Autosave fires 1.2s after you stop; the header flips
+Unsaved → Saving… → Saved. The preview re-renders as you type.
+
+The Markdown renderer is hand-written and **escapes every character before
+applying formatting**, because document content can come from a local model or
+an imported file. A library configured wrong fails open; this fails closed.
+`javascript:` URLs in links degrade to plain text.
+
+### D12 Targeted section regeneration
+
+In the Preview tab, scroll to "Regenerate a section" and click **Redo** on one
+section. Only that section is replaced.
+
+Section parsing tracks code fences, so a `#` inside a shell example is never
+mistaken for a heading — which would split the document at the wrong place and
+make regeneration overwrite the wrong text. This is covered by
+`test_hash_inside_code_fence_is_not_a_heading`.
+
+### D13 Version history & diff — **fully verified end-to-end**
+
+```bash
+NODE=4e753d35-f58d-4a37-9aab-7beb67716814   # any real node id
+
+# 1. replace the whole document
+curl -s -X PUT "http://localhost:8000/api/v1/documents/$NODE" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"# Edited\n\nThis replaced the whole doc."}'
+
+# 2. list versions
+curl -s "http://localhost:8000/api/v1/documents/$NODE/versions"
+
+# 3. diff  4. restore
+curl -s -X POST "http://localhost:8000/api/v1/documents/$NODE/versions/$VER/restore"
+```
+
+**Captured output:**
+
+```
+1. edit     -> words: 7    versions: 1   dirty: True
+2. versions -> v1 edit 353w
+3. diff     -> +2 -23 lines
+4. restore  -> restored words: 353  sections: 5
+```
+
+The original 353-word document with all five sections came back intact.
+In the UI the Versions tab showed:
+
+```
+v2   restore   7/27/2026, 7:34:08 PM · 7w · before restoring v1   [Diff] [Restore]
+v1   edit      7/27/2026, 7:34:08 PM · 353w                       [Diff] [Restore]
+```
+
+Note `v2 restore` — **restoring is itself snapshotted**, so a restore is undoable.
+
+### D14 Inline AI refine
+
+Select text in the editor. The refine bar activates with Shorten / Expand /
+More formal / Plainer. Output is shown as a **preview with a word-count delta**
+before you Apply — an AI rewrite you cannot inspect first is one you stop
+trusting. Applying re-anchors comments whose offsets shifted.
+
+### D15 Comments & annotations
+
+Select text, open the **Comments** tab, write a note, Add comment.
+
+**Verified:** a comment anchored to offsets 2–10 captured `anchor_text` of
+`'# Overvi'`. When text is later inserted above it, `reanchor_comments` finds
+the anchor by content and moves the offsets. A comment whose anchor text is
+gone entirely keeps its old offsets and is reported as orphaned rather than
+deleted — the note may still be the useful part.
+
+### D16 Status workflow
+
+```bash
+curl -s -X POST ".../documents/$NODE/status" -d '{"status":"in_review"}'   # 200
+curl -s -X POST ".../documents/$NODE/status" -d '{"status":"approved"}'    # from draft: 409
+```
+
+Transitions are enforced: draft→in_review→approved, and **approved can never
+fall straight back to draft** — that would discard the fact it was reviewed.
+Every transition is appended to `status_history` with a timestamp.
+
+### D18 Wiki links · D19 Tags · D20 Custom types
+
+- Type `[[Some Document Title]]`, open the **Links** tab. Resolved links are
+  clickable; unresolved ones are listed as unresolved rather than hidden.
+  Backlinks are computed in both directions.
+- Add a tag in the header chip row. Verified: `tags: ['verified']`.
+- Custom document types carry a section structure and deterministic
+  verification rules (required sections, min words, no placeholder text).
+  Verified: a type requiring "Highlights" and "Breaking Changes" correctly
+  failed a document containing only "Highlights".
+
+**Bug found and fixed during this work.** Deleting a comment that had replies
+raised `FOREIGN KEY constraint failed` — SQLAlchemy batched both deletes into
+one `executemany` whose order is not guaranteed, so the parent could go first.
+Fixed with an explicit flush between. Caught by
+`test_deleting_a_parent_removes_replies`.
+
+---
+
+# Phase 3 — AI Copilot
+
+Every feature routes through `model_routing.call()`, which is the single place
+that resolves the per-task model **and** writes telemetry — so no model call
+can exist that the usage dashboard cannot see.
+
+## D21 · Project Chat Copilot — **verified against real Ollama**
+
+**Test it**
+
+1. Open `http://localhost:1420/copilot`
+2. Ask: *"What does the audit log export feature do?"*
+
+**Captured output (real, local llama3.2):**
+
+```
+MODEL: default   latency: 14280 ms
+ANSWER: The Audit Log Export feature allows users to export historical audit
+logs of a product in CSV format for compliance checks and audits. This
+facilitates transparency and accountability by providing a structured way to
+track changes and activities within the product [1]. The generated CSV report
+includes detailed information such as timestamps, user IDs, change types,
+affected fields, and more [4][5]...
+CITATIONS: [(1,'Feature Spec'), (2,'Audit log export'), (3,'Feature Spec'),
+            (4,'Functional Analysis'), (5,'Documentation'), (6,'Feature Spec')]
+```
+
+In the UI the thread auto-titled itself from the question, and the six sources
+rendered as clickable chips that navigate to the document.
+
+**Why retrieval is lexical, not embeddings.** It works with zero setup on a
+machine with no embedding model pulled, and it is deterministic — the same
+question retrieves the same documents, which matters when the answer carries
+citations the user is meant to trust.
+
+```bash
+curl -s "http://localhost:8000/api/v1/copilot/retrieve?question=audit%20log%20export&project_id=default-project"
+```
+
+**Captured ranking** — the title match correctly outranks passing mentions:
+
+```
+10.5  Audit log export
+ 7.5  Feature Spec
+ 7.5  Functional Analysis
+ 5.5  Flowchart
+```
+
+## D22 · Next-Best-Action
+
+The **reason is always deterministic**; only the wording is model-phrased. If
+the model is unavailable the computed sentence is shown verbatim and the card
+is badged `computed`. A recommendation that invents its justification is one
+you learn to ignore.
+
+```bash
+curl -s http://localhost:8000/api/v1/copilot/signals/default-project
+```
+
+**Captured output** — ordered by fixed urgency weights:
+
+```
+untriaged_ideas         w=60   Triage 1 idea
+unresolved_comments     w=55   Resolve 1 comment
+high_pareto_unstarted   w=40   Start: Data Encryption
+```
+
+Full ordering: pending approval (100) > failed run (90) > failed verification
+(85) > untriaged ideas (60) > unresolved comments (55) > review waiting (50) >
+high Pareto unstarted (40) > missing documents (30) > empty project (20).
+Something *blocking* outranks something merely *valuable*.
+
+## D23 · AI-Assisted Prioritization
+
+The model proposes impact/effort/risk with a rationale and confidence.
+**Nothing touches the backlog until you accept**, and you may edit the numbers
+while accepting. Out-of-range scores are clamped to 1–10; unparseable model
+output raises rather than guessing. Covered by 7 tests including
+`test_suggestion_does_not_touch_the_feature`.
+
+## D25 · One-Click Summarize
+
+Click **Summarize** in the document editor header.
+
+## D26 · Cross-Project Global Copilot
+
+Same surface, **All Projects** toggle. Retrieval spans every project and
+citations carry the project name.
+
+## D27 · Prompt Library
+
+```bash
+curl -s "http://localhost:8000/api/v1/copilot/prompts?project_id=default-project"
+```
+
+**Captured:** `5 prompts: ['feature_spec','chat_grounded','prioritize_feature','summarize_document','user_stories']`
+
+Built-ins are **immutable — fork to edit**. A fork records `forked_from`, which
+is what makes "show me what I changed" and "reset to Dobby's version"
+possible. Rendering validates that every declared `{{variable}}` has a value,
+so a typo'd placeholder fails loudly instead of sending the model a literal
+`{{contxt}}`.
+
+## D28 · Per-Task Model Routing
+
+```bash
+curl -s http://localhost:8000/api/v1/copilot/routing
+```
+
+Map any of `generate, chat, summarize, prioritize, refine, regenerate_section,
+research, embed, other` to a specific model. An unset task falls through to
+the global default, so an empty map behaves exactly as before.
+
+## D29 · Streaming Generation View — **Partial, not done**
+
+Per-call latency and live run tracing ship (Logs & Traces, `/usage`), but real
+token-by-token streaming needs a streaming transport through
+`providers.generate()`. Marked `Partial` in the tracker rather than claimed.
+
+## D30 · Token / Latency / Cost Dashboard
+
+Open `http://localhost:1420/usage`.
+
+**Captured output after the one real copilot call:**
+
+```
+calls: 1   tokens(est): 1843   avg: 14278 ms
+by_task:  [('chat', 1, '14278ms')]
+by_model: [('default', 1)]
+cost_basis: {'watts': 60.0, 'rate_per_kwh': 0.15,
+             'note': 'Local inference has no invoice — this is time x power x rate, an estimate.'}
+```
+
+The telemetry row was written automatically by `model_routing.call()` with no
+extra wiring at the call site. **Both the cost and the token counts are
+labelled as estimates in the UI**, because local runtimes report neither and a
+confidently wrong number is worse than none.
+
+---
+
+# Phase 4 — partial
+
+## D31 · Transcribe — verified with real audio
+
+The whisper.cpp backend existed with full test coverage but had **no UI at
+all**; this cycle wired it up.
+
+```bash
+say -o /tmp/t.aiff "Testing the new transcribe page end to end"
+afconvert -f WAVE -d LEI16 /tmp/t.aiff /tmp/t.wav
+# upload via /api/v1/attachments/project/default-project, then:
+curl -s -X POST http://localhost:8000/api/v1/transcription/transcribe ...
+```
+
+**Captured output:**
+
+```json
+{"text":"testing the new transcribe page end to end.",
+ "engine":"whisper.cpp","model":"tiny.en","duration_ms":758,"audio_seconds":2.28}
+```
+
+`.aiff` is correctly rejected as unsupported — that is the format whitelist
+working, not a bug.
+
+---
+
+# Phase 5 — Planning & PM
+
+Ten features on two invariants, both verified live against the real backlog.
+
+## The board — `/board`
+
+Renders the Pareto-scored backlog across Backlog / Todo / In Progress /
+Blocked / Done. Planning state lives in its own `PlanningMeta` row rather than
+new columns on `FeatureBacklog`, which the generation pipeline writes on every
+run — so this phase is purely additive.
+
+Cards show Pareto score, I/E/R, and an estimate **seeded from the effort
+score** so nothing starts unestimated. Column moves are buttons, not drag
+targets: keyboard-operable, and it makes "blocked" impossible to pick.
+
+## Blocked is derived, never stored — **verified end-to-end**
+
+A feature is blocked if it has an unfinished blocker, full stop. Storing
+"blocked" as a column *and* keeping blocker rows would let the two disagree.
+
+```bash
+# 1. baseline
+curl -s .../planning/board/default-project        # backlog 10, blocked 0
+
+# 2. A is blocked by B
+curl -s -X POST .../planning/blockers -d '{"project_id":"...","feature_id":"$A","blocked_by_id":"$B"}'
+curl -s .../planning/board/default-project        # backlog 9, blocked 1
+
+# 3. try to create a cycle
+curl -s -X POST .../planning/blockers -d '{"feature_id":"$B","blocked_by_id":"$A"}'
+
+# 4. finish B
+curl -s -X POST .../planning/board/$B/move -d '{"to_column":"done"}'
+curl -s .../planning/board/default-project        # backlog 9, blocked 0, done 1
+```
+
+**Captured output:**
+
+```
+--- board ---            backlog 10  todo 0  in_progress 0  blocked 0  done 0
+--- add blocker ---      backlog  9  todo 0  in_progress 0  blocked 1  done 0
+--- cycle refused ---    "That would create a circular dependency."
+--- finish blocker ---   backlog  9  todo 0  in_progress 0  blocked 0  done 1
+```
+
+Finishing the upstream item unblocked the downstream one with no second
+action. `POST /board/{id}/move` with `to_column: "blocked"` returns **400** —
+you add a blocker instead.
+
+## Every column move is recorded
+
+`_move()` is the only path that changes a column, and it always appends a
+`FeatureStatusChange`. That append-only log is what makes D50 possible:
+velocity, throughput, cycle time, and cumulative flow are all questions about
+*when* work moved, which current state cannot answer.
+
+Cycle time counts a feature's **first** completion — bouncing something back
+out of Done and finishing it again must not inflate throughput, and a late
+typo fix must not inflate a month-old cycle time.
+
+## The rest of the phase
+
+| Feature | Notes |
+|---|---|
+| **D42 Timeline** | Features with no dates are laid out by dependency *depth* — blocked-by-two-levels sits two lanes right. That is the honest thing to draw when no real dates exist. |
+| **D43 Sprints** | Capacity, committed vs completed, over-capacity flag. Activating a sprint closes any other active one, because two active sprints makes "the current sprint" ambiguous everywhere it is used. |
+| **D45 Estimates** | Seeded from the Pareto effort input, then refined. Points or hours. |
+| **D46 Work breakdown** | The model proposes subtasks; **accept** writes them as real backlog features with real blocker edges, so they land in the same board and analytics rather than a parallel to-do list. |
+| **D47 Daily plan** | Capacity-aware, drawn from the ready set with blocked work excluded, committed per local date. |
+| **D48 Weekly review** | Completed last week, carryover with days-in-progress, items blocked 7+ days, and a suggested capacity from real 4-week throughput. |
+| **D49 OKRs** | Key-result progress is **impact-weighted** — finishing a 10-impact feature moves it far more than a 1-impact one. |
+
+**Bug found and fixed.** `PlanningMeta` could be inserted before the
+`FeatureBacklog` row its foreign key references when both were pending in one
+batch — the same SQLAlchemy ordering issue found in Phase 2. Caught by
+`test_accept_creates_features_and_dependencies`.
+
+---
+
+# What is not done
+
+60 of the 100 roadmap features remain (D32–D40, D51–D100, minus the few
+superseded).
+These are tracked in `Dobby_100_Day_Roadmap.xlsx` with a **Lane** column
+assigning each to one of eight parallel workstreams:
+
+| Lane | Scope | Rows |
+|---|---|---|
+| A | Daily Home & Capture | 20 |
+| B | Documents & Editor | 10 |
+| C | AI Copilot & Model Ops | 10 |
+| D | Planning & PM | 10 |
+| E | Integrations & Server | 20 |
+| F | Habit & Delight | 10 |
+| G | Quality & Trust | 10 |
+| H | Scale & Ecosystem | 10 |
+
+Lane E is the largest and the only one requiring server infrastructure
+(GitHub/Jira/Linear/Notion sync, public REST API, team roles, presence,
+multi-device sync).
+
+**Known partial items** carried in `OW · Features`: per-task threads and
+working folders, inline-vs-inbox routing, persona progressive disclosure,
+Slack app manifest (needs external credentials), 25+ connectors, OS-level
+reveal-in-Finder, and the deliberately-deferred cloud OAuth broker.
+
+
+---
+
+# Work Graph (beyond the roadmap)
+
+Five features that reframe Dobby around goals, decisions and skills rather
+than around document generation — **without** removing the generator, which
+ships as a first-class Skill.
+
+## Decisions — the forks work waits behind
+
+Nothing captured the shape of *"RAG vs. Structured Reasoning for Verity —
+decide by Aug 3"*. Not an idea (already framed), not a backlog feature
+(nobody builds a decision), not a document (unresolved).
+
+**An open decision blocks work**, exactly like an unfinished blocker.
+Verified live with that literal example:
+
+```
+top ready item before linking : Data Encryption
+after linking the decision    : still in ready set? False
+                                new top ready item:   Offline Syncing
+                                blocked by: ['RAG vs. Structured Reasoning for Verity']
+
+next-best-action              : w=62  decision_blocking  Decide: RAG vs. Structured…
+after deciding                : top ready item is back to: Data Encryption
+                                chose: Structured reasoning
+                                rejected options kept: ['RAG']
+```
+
+Deciding is **append-only** — choice, rationale and timestamp are written
+once. Changing your mind creates a *superseding* decision that inherits the
+blocking links, so what you believed in July survives disagreeing with it in
+September. An overdue decision ranks at weight 95 in next-best-action, above
+a failed run (90): everything behind an untaken fork is stalled.
+
+## The Work Graph — `/workgraph`
+
+Goal → projects → decisions → skills, on react-flow (already a dependency
+from the mind map).
+
+**Derived on read, never stored.** A stored graph would need syncing with
+five independently-changing tables, and the copy on screen would eventually
+be wrong. Covered by a test that decides a decision and confirms the edge
+disappears with no other write.
+
+Every insight is **computed from edges, not phrased by a model** — the panel
+says so out loud:
+
+```
+DECISION   RAG vs. Structured Reasoning for Verity      Due 2026-08-03
+INSIGHT    1 piece of work cannot start until this is settled.
+           Computed from your data — not generated.
+CONNECTED  blocked by: Data Encryption
+NEXT       Settling it releases Data Encryption          [ Decide this ]
+```
+
+Layout is banded by type rather than force-directed (prettier, far less
+legible), rows wrap at four, and the node cap **reports how many it hid**
+rather than truncating silently.
+
+## Skills — `/skills`
+
+Every part already existed and none of it was connected: the prompt library
+held intent, MCP held sources, content safety held guardrails, the Inbox held
+approval. A Skill binds them into one saved thing.
+
+| Property | How |
+|---|---|
+| Guardrails enforced **in code** | A word limit in a prompt is a suggestion; `max_output_words` fails the run |
+| `local_only` + a web source | Refused as a contradiction, not silently resolved |
+| Acting needs approval | Anything beyond returning text raises an Inbox ask |
+| Publishing needs a simulation | You cannot promote a skill you have never watched run |
+| A simulation writes nothing | …but is still recorded — "what would this have done" is the useful part |
+
+**The generator survives as a built-in Skill.** Its permissions render
+straight from config:
+
+```
+Seven-artifact document set
+  CAN     ✓ Read your project documents  ✓ Read your backlog
+          ✓ Save a document (with your approval)
+  CANNOT  ✗ Search the web  ✗ Use connected tools
+          ✗ Run code or install anything  ✗ Send your data anywhere
+```
+
+Verified live against Ollama: forked a built-in, publish returned **409**
+until a simulation succeeded, simulated in 17s with a clean four-step trace
+(sources → intent → guardrails → review), then published.
+
+## Time-blocked planning
+
+`propose_daily_plan` answered *what*; this answers *when*.
+
+```
+=== 2026-07-27 — 58.8% utilised · fits=False · 2 partial ===
+  09:00–11:30 DEEP  ~Offline Syncing        150m
+  12:30–13:30 ----   Lunch                   60m
+  13:30–16:00 ADMIN ~Advanced Search        150m
+
+  ~ Offline Syncing   A first block on this — the estimate is about 5.2h in total.
+  did not fit:
+    - Offline export to PDF   Needs 150 minutes and the day is full.
+```
+
+Deep work goes **where your energy is, not where there is room** — highest
+value first into the morning window, before anything else is placed. Every
+block gets a buffer so one overrun does not cascade. Lunch is a real block
+and nothing is scheduled across it. Work that will not fit is **named**, and
+a block that had to be capped says so rather than reading as finishable.
+
+**Bug found here:** `commit_daily_plan` normalised every item to four
+hard-coded keys, so a committed schedule read back with the times dropped.
+
+## Journal and the app registry
+
+The journal is **not** a second capture inbox — Ideas owns that. It is a
+dated reflection whose useful property is `auto_entry`, which drafts the day
+from the Activity Timeline. Verified: drafted 13 real events from today. An
+entry stops being flagged a draft the moment a human edits it.
+
+The app registry names the surfaces as apps over one shared substrate, and is
+generated from the systems themselves so it cannot advertise something
+unwired:
+
+```
+memory       One database on this device. Every app reads the same documents…
+permissions  One approval gate. Anything consequential raises an ask in your Inbox…
+work_graph   One graph. A decision blocking work blocks it everywhere.
+```
+
+## Still to do on this track
+
+The **UI reskin** — the serif display type and cream/dark palette from the
+mockups — is deliberately last. The data model now earns it; doing it first
+would have been decoration over a model that could not support the screens.

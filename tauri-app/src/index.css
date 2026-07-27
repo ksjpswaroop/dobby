@@ -1,0 +1,179 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   Design tokens
+   ========================================================================== */
+/* Palette ported from OpenWorker (surfaces/gui/src/styles.css): cool "tool gray"
+   neutrals, violet accent, and OpenWorker's ok/warn/danger tones. Stored as
+   "R G B" triplets for Tailwind's rgb(var(--x) / <alpha>) tokens. */
+:root {
+  --bg: 245 246 247;        /* OpenWorker --paper #f5f6f7 */
+  --surface: 255 255 255;   /* --panel #ffffff */
+  --surface2: 238 240 242;  /* soft neutral fill */
+  --line: 232 234 237;      /* --line #e8eaed */
+  --ink: 23 25 28;          /* --ink #17191c */
+  --ink-muted: 91 97 107;   /* --muted #5b616b */
+  --brand: 124 58 237;      /* --accent #7c3aed */
+  --brand-fg: 255 255 255;
+  --accent: 168 85 247;     /* violet accent tone */
+  --success: 47 125 87;     /* --ok #2f7d57 */
+  --warning: 180 83 9;      /* --warn-ink #b45309 */
+  --danger: 185 28 28;      /* --danger #b91c1c */
+  color-scheme: light;
+}
+
+.dark {
+  --bg: 19 20 23;           /* OpenWorker dark --paper #131417 */
+  --surface: 28 30 34;      /* --panel #1c1e22 */
+  --surface2: 37 40 46;
+  --line: 42 45 51;         /* --line #2a2d33 */
+  --ink: 230 232 235;       /* --ink #e6e8eb */
+  --ink-muted: 154 161 171; /* --muted #9aa1ab */
+  --brand: 167 139 250;     /* --accent #a78bfa */
+  --brand-fg: 255 255 255;
+  --accent: 196 181 253;
+  --success: 88 176 127;    /* --ok #58b07f */
+  --warning: 232 176 75;    /* --warn-ink #e8b04b */
+  --danger: 240 112 103;    /* --danger #f07067 */
+  color-scheme: dark;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: rgb(var(--bg));
+    color: rgb(var(--ink));
+    font-family: theme('fontFamily.sans');
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* Non-selectable chrome feels more native; content areas opt back in */
+    -webkit-user-select: none;
+    user-select: none;
+    overflow: hidden;
+  }
+
+  input,
+  textarea,
+  select,
+  [data-selectable],
+  .prose {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--line));
+    border-radius: 9999px;
+    border: 2px solid rgb(var(--bg));
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--ink-muted) / 0.5);
+  }
+
+  :focus-visible {
+    outline: none;
+  }
+}
+
+/* ==========================================================================
+   Component primitives
+   ========================================================================== */
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-surface shadow-soft;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium
+      transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50 select-none
+      focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:outline-none;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-brand-fg hover:brightness-110 active:brightness-95 shadow-soft;
+  }
+  .btn-secondary {
+    @apply btn border border-line bg-surface text-ink hover:bg-surface2;
+  }
+  .btn-ghost {
+    @apply btn text-ink-muted hover:bg-surface2 hover:text-ink;
+  }
+  .btn-danger {
+    @apply btn bg-danger text-white hover:brightness-110;
+  }
+  .btn-success {
+    @apply btn bg-success text-white hover:brightness-110;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink
+      placeholder:text-ink-muted transition-colors
+      focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30;
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-ink-muted
+      transition-colors hover:bg-surface2 hover:text-ink;
+  }
+  .nav-link-active {
+    @apply bg-brand/10 text-brand hover:bg-brand/15 hover:text-brand;
+  }
+
+  .skeleton {
+    @apply animate-pulse rounded-lg bg-surface2;
+  }
+}
+
+/* A freshly generated graph node — pulses briefly so live growth is visible. */
+@keyframes graph-node-pop {
+  0%   { opacity: 0; transform: scale(0.85); }
+  55%  { opacity: 1; transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.graph-node-new {
+  animation: graph-node-pop 0.5s ease-out both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.graph-node-new rect,
+.graph-node-new polygon {
+  outline: 2px solid rgb(var(--brand));
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .graph-node-new { animation: none; }
+}
+
+/* Visually hidden but announced by screen readers. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
