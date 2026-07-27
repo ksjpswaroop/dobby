@@ -350,6 +350,12 @@ from src.api.collab_routes import public_router as shared_router
 app.include_router(collab_router)
 app.include_router(shared_router)
 
+# Include vault + pipeline-builder routes (encryption at rest, composable pipelines)
+from src.api.vault_routes import router as vault_router
+from src.api.vault_routes import pipeline_router
+app.include_router(vault_router)
+app.include_router(pipeline_router)
+
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])

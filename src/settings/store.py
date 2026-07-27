@@ -119,6 +119,10 @@ class Settings:
     # appends nothing to prompts, so the English path is unchanged.
     output_language: str = "en"
 
+    # User-composed pipelines, keyed by project (D92). Steps come from a fixed
+    # catalogue — never user code, for the same reason custom rules don't.
+    pipelines: Dict[str, Any] = field(default_factory=dict)
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
