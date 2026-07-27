@@ -278,6 +278,10 @@ app.include_router(terminal_router)
 from src.api.automation_routes import router as automation_router
 app.include_router(automation_router)
 
+# Include idea capture routes (quick-capture + triage)
+from src.api.idea_routes import router as idea_router
+app.include_router(idea_router)
+
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])

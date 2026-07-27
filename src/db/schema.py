@@ -373,7 +373,7 @@ class DatabaseManager:
         # tables. Imported here (not at module top) to avoid a circular import,
         # since those modules import Base from this one.
         from src.db import (  # noqa: F401
-            automation_models, inbox_models, license_models, mindmap_models,
+            automation_models, idea_models, inbox_models, license_models, mindmap_models,
             research_models, run_models, session_models,
         )
 

@@ -6,6 +6,7 @@ import { useProject } from '../lib/project';
 import { NAV_SECTIONS, sectionForRoute } from '../lib/nav';
 import { CommandPalette } from './CommandPalette';
 import { TerminalDock } from './TerminalDock';
+import { QuickCapture } from './QuickCapture';
 import api, { type SystemInfo, type ProjectInfo } from '../api/client';
 import {
   IconFolder,
@@ -263,6 +264,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
       return !v;
     });
 
+  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
+
   // A sidebar verb is active when the current route is one of its sub-surfaces.
   const isSectionActive = (
     items: { route: string }[],
@@ -283,6 +286,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
           localStorage.setItem('dobby-terminal-open', v ? '0' : '1');
           return !v;
         });
+      }
+      // ⌘I / Ctrl-I — capture a thought without leaving the current page.
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'i') {
+        e.preventDefault();
+        setQuickCaptureOpen((v) => !v);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -361,6 +369,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <QuickCapture open={quickCaptureOpen} onClose={() => setQuickCaptureOpen(false)} />
     </div>
   );
 }

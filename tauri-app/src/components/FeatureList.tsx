@@ -114,8 +114,8 @@ export default function FeatureList({ projectId, reloadKey, onFeatureSelect }: F
                   <Badge tone={STATUS_TONE[f.status] ?? 'neutral'}>
                     {f.status.replace('_', ' ')}
                   </Badge>
-                  <Badge tone={CATEGORY_TONE[f.category] ?? 'neutral'}>
-                    {f.category.replace('_', ' ')}
+                  <Badge tone={CATEGORY_TONE[f.category ?? ''] ?? 'neutral'}>
+                    {(f.category ?? 'uncategorized').replace('_', ' ')}
                   </Badge>
                 </div>
               </div>

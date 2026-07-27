@@ -4,7 +4,7 @@ import {
   IconAudio, IconYouTube, IconNotes,
   IconCommand, IconSkill, IconFlow,
   IconTerminal, IconLogs, IconControl, IconSearch, IconSettings,
-  IconMarket, IconSparkles, IconResearch, IconServer,
+  IconMarket, IconSparkles, IconResearch, IconServer, IconBulb,
 } from './icons';
 
 export type NavStatus = 'live' | 'planned';
@@ -45,6 +45,7 @@ export const NAV_SECTIONS: NavSection[] = [
     hint: 'Capture ideas, prioritize, and see the big picture',
     items: [
       { label: 'Overview', route: '/', icon: IconDashboard, status: 'live' },
+      { label: 'Ideas', route: '/ideas', icon: IconBulb, status: 'live' },
       { label: 'Projects', route: '/projects', icon: IconFolder, status: 'live' },
       { label: 'Backlog', route: '/backlog', icon: IconBacklog, status: 'live' },
       { label: 'Graph', route: '/graph', icon: IconGraph, status: 'live' },
@@ -74,8 +75,7 @@ export const NAV_SECTIONS: NavSection[] = [
         blurb: 'Generate runnable app prototypes from a spec, preview and test them in-app.' },
       { label: 'Video', route: '/video', icon: IconVideo, status: 'planned', phase: 'P4',
         blurb: 'Generate short videos and animated explainers from your documents.' },
-      { label: 'Transcribe', route: '/transcribe', icon: IconAudio, status: 'planned', phase: 'P2',
-        blurb: 'Local, private audio transcription — drop a file or record, get text.' },
+      { label: 'Transcribe', route: '/transcribe', icon: IconAudio, status: 'live' },
       { label: 'YouTube', route: '/youtube', icon: IconYouTube, status: 'planned', phase: 'P2',
         blurb: 'Extract a transcript + audio from YouTube, then build structured notes.' },
       { label: 'Notes', route: '/notes', icon: IconNotes, status: 'planned', phase: 'P2',

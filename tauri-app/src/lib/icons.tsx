@@ -304,3 +304,9 @@ export const IconResearch = (p: IconProps) => (
     <path d="M19.2 9.2 22 12M8 14h5M8 17.5h7" />
   </Icon>
 );
+export const IconBulb = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M9 18h6M10 21h4" />
+    <path d="M12 3a6 6 0 0 0-3.5 10.9c.6.44 1 1.16 1 1.94V16h5v-.16c0-.78.4-1.5 1-1.94A6 6 0 0 0 12 3Z" />
+  </Icon>
+);

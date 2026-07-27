@@ -6,6 +6,8 @@ import Documents from './pages/Documents';
 import Research from './pages/Research';
 import Automations from './pages/Automations';
 import Inbox from './pages/Inbox';
+import Ideas from './pages/Ideas';
+import Transcribe from './pages/Transcribe';
 import Connections from './pages/Connections';
 import Wizard from './pages/Wizard';
 import Yolo from './pages/Yolo';
@@ -21,7 +23,7 @@ import MindMapPage from './pages/MindMapPage';
 
 // Planned surfaces (on the roadmap) render a consistent "coming soon" placeholder.
 const PLANNED_ROUTES = [
-  '/prototypes', '/video', '/transcribe', '/youtube', '/notes',
+  '/prototypes', '/video', '/youtube', '/notes',
   '/skills', '/flows', '/control',
   '/marketplace',
 ];
@@ -36,6 +38,8 @@ function App() {
         <Route path="/research" element={<Research />} />
         <Route path="/automations" element={<Automations />} />
         <Route path="/inbox" element={<Inbox />} />
+        <Route path="/ideas" element={<Ideas />} />
+        <Route path="/transcribe" element={<Transcribe />} />
         {/* The terminal is a bottom dock now (⌃`), not a page. */}
         <Route path="/terminal" element={<Navigate to="/logs" replace />} />
         <Route path="/connections" element={<Connections />} />
