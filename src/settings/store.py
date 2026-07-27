@@ -109,6 +109,12 @@ class Settings:
     density: str = "comfortable"   # comfortable | compact
     font_scale: float = 1.0
 
+    # User-authored verification rules, keyed by project (D82). Rules are a
+    # small set of declarative shapes, never executable code — a rules editor
+    # that runs user code is a remote-execution hole in an app that also
+    # imports archives from other people.
+    custom_rules: Dict[str, Any] = field(default_factory=dict)
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 

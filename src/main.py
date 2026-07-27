@@ -331,6 +331,10 @@ app.include_router(capture_router)
 from src.api.habit_routes import router as habit_router
 app.include_router(habit_router)
 
+# Include quality routes (verification report, custom rules, citations, auto-fix)
+from src.api.quality_routes import router as quality_router
+app.include_router(quality_router)
+
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])
