@@ -375,7 +375,7 @@ class DatabaseManager:
         from src.db import (  # noqa: F401
             automation_models, copilot_models, document_models, idea_models, inbox_models,
             license_models, mindmap_models, pin_models, planning_models, research_models,
-            run_models, session_models,
+            run_models, session_models, trust_models,
         )
 
         # Create all tables

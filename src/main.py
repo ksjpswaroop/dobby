@@ -319,6 +319,10 @@ app.include_router(copilot_router)
 from src.api.planning_routes import router as planning_router
 app.include_router(planning_router)
 
+# Include trust routes (trash, project backup, consistency, batch operations)
+from src.api.trust_routes import router as trust_router
+app.include_router(trust_router)
+
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])
