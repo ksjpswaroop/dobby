@@ -47,6 +47,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: 'Overview', route: '/', icon: IconDashboard, status: 'live' },
       { label: 'Ideas', route: '/ideas', icon: IconBulb, status: 'live' },
+      { label: 'Journal', route: '/journal', icon: IconNotes, status: 'live' },
       { label: 'Projects', route: '/projects', icon: IconFolder, status: 'live' },
       { label: 'Backlog', route: '/backlog', icon: IconBacklog, status: 'live' },
       { label: 'Board', route: '/board', icon: IconLayers, status: 'live' },
@@ -99,8 +100,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Connections', route: '/connections', icon: IconServer, status: 'live' },
       { label: 'Automations', route: '/automations', icon: IconFlow, status: 'live' },
       { label: 'Commands', route: '/command', icon: IconCommand, status: 'live' },
-      { label: 'Skills', route: '/skills', icon: IconSkill, status: 'planned', phase: 'P3',
-        blurb: 'Author reusable AI skills (prompt + tools + schema) you can run and publish.' },
+      { label: 'Skills', route: '/skills', icon: IconSkill, status: 'live' },
       { label: 'Flows', route: '/flows', icon: IconFlow, status: 'planned', phase: 'P3',
         blurb: 'Compose multi-step automations visually — chain skills, tools, and conditions.' },
       { label: 'Marketplace', route: '/marketplace', icon: IconMarket, status: 'planned', phase: 'P5',

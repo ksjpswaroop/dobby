@@ -374,7 +374,7 @@ class DatabaseManager:
         # since those modules import Base from this one.
         from src.db import (  # noqa: F401
             automation_models, collab_models, copilot_models, decision_models,
-            document_models, idea_models, inbox_models, integration_models,
+            document_models, idea_models, inbox_models, integration_models, journal_models,
             license_models, mindmap_models, pin_models, planning_models,
             research_models, run_models, session_models, skill_models,
             trust_models,

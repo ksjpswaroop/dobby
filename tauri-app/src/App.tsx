@@ -17,6 +17,8 @@ import Yolo from './pages/Yolo';
 import GraphPage from './pages/GraphPage';
 import WorkGraphPage from './pages/WorkGraph';
 import Decisions from './pages/Decisions';
+import Journal from './pages/Journal';
+import Skills from './pages/Skills';
 import BacklogPage from './pages/BacklogPage';
 import BoardPage from './pages/Board';
 import Bulk from './pages/Bulk';
@@ -31,7 +33,7 @@ import MindMapPage from './pages/MindMapPage';
 // Planned surfaces (on the roadmap) render a consistent "coming soon" placeholder.
 const PLANNED_ROUTES = [
   '/prototypes', '/video', '/youtube', '/notes',
-  '/skills', '/flows', '/control',
+  '/flows', '/control',
   '/marketplace',
 ];
 
@@ -61,6 +63,8 @@ function App() {
         <Route path="/graph" element={<GraphPage />} />
         <Route path="/workgraph" element={<WorkGraphPage />} />
         <Route path="/decisions" element={<Decisions />} />
+        <Route path="/journal" element={<Journal />} />
+        <Route path="/skills" element={<Skills />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/logs" element={<Logs />} />
         <Route path="/activity" element={<Activity />} />

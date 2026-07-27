@@ -358,6 +358,12 @@ app.include_router(shared_router)
 from src.api.decision_routes import router as decision_router
 app.include_router(decision_router)
 
+# Include journal + app-registry routes
+from src.api.journal_routes import router as journal_router
+from src.api.journal_routes import apps_router
+app.include_router(journal_router)
+app.include_router(apps_router)
+
 # Include time-block routes (the daily plan laid onto the clock)
 from src.api.timeblock_routes import router as timeblock_router
 app.include_router(timeblock_router)
