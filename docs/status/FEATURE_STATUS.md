@@ -1,6 +1,6 @@
 # Dobby — Feature Status & Test Evidence
 
-**As of 2026-07-27** · branch `feat/dobby-v2-workbench` · 1175 backend tests passing
+**As of 2026-07-27** · branch `feat/dobby-v2-workbench` · 1334 backend tests passing
 
 This document records every shipped feature, how to test it yourself step by
 step, and the actual output captured when it was verified. Commands are
@@ -32,9 +32,14 @@ Full test suite:
 cd /Users/swaroop/projects/09-dobby && source .venv/bin/activate && python -m pytest tests/ -q
 ```
 
-Captured result: `1175 passed, 3687 warnings in 25.85s`
+Captured result: `1334 passed, 4589 warnings in 26.64s`
 
 ---
+
+> **Beyond the 100-day roadmap.** A second track — the *Work Graph* —
+> reframes Dobby as a work OS over the same substrate. Decisions, the Work
+> Graph, Skills, time-blocked planning, and the Journal all ship; see
+> [Work Graph](#work-graph-beyond-the-roadmap) below.
 
 ## Scorecard
 
@@ -604,3 +609,140 @@ multi-device sync).
 working folders, inline-vs-inbox routing, persona progressive disclosure,
 Slack app manifest (needs external credentials), 25+ connectors, OS-level
 reveal-in-Finder, and the deliberately-deferred cloud OAuth broker.
+
+
+---
+
+# Work Graph (beyond the roadmap)
+
+Five features that reframe Dobby around goals, decisions and skills rather
+than around document generation — **without** removing the generator, which
+ships as a first-class Skill.
+
+## Decisions — the forks work waits behind
+
+Nothing captured the shape of *"RAG vs. Structured Reasoning for Verity —
+decide by Aug 3"*. Not an idea (already framed), not a backlog feature
+(nobody builds a decision), not a document (unresolved).
+
+**An open decision blocks work**, exactly like an unfinished blocker.
+Verified live with that literal example:
+
+```
+top ready item before linking : Data Encryption
+after linking the decision    : still in ready set? False
+                                new top ready item:   Offline Syncing
+                                blocked by: ['RAG vs. Structured Reasoning for Verity']
+
+next-best-action              : w=62  decision_blocking  Decide: RAG vs. Structured…
+after deciding                : top ready item is back to: Data Encryption
+                                chose: Structured reasoning
+                                rejected options kept: ['RAG']
+```
+
+Deciding is **append-only** — choice, rationale and timestamp are written
+once. Changing your mind creates a *superseding* decision that inherits the
+blocking links, so what you believed in July survives disagreeing with it in
+September. An overdue decision ranks at weight 95 in next-best-action, above
+a failed run (90): everything behind an untaken fork is stalled.
+
+## The Work Graph — `/workgraph`
+
+Goal → projects → decisions → skills, on react-flow (already a dependency
+from the mind map).
+
+**Derived on read, never stored.** A stored graph would need syncing with
+five independently-changing tables, and the copy on screen would eventually
+be wrong. Covered by a test that decides a decision and confirms the edge
+disappears with no other write.
+
+Every insight is **computed from edges, not phrased by a model** — the panel
+says so out loud:
+
+```
+DECISION   RAG vs. Structured Reasoning for Verity      Due 2026-08-03
+INSIGHT    1 piece of work cannot start until this is settled.
+           Computed from your data — not generated.
+CONNECTED  blocked by: Data Encryption
+NEXT       Settling it releases Data Encryption          [ Decide this ]
+```
+
+Layout is banded by type rather than force-directed (prettier, far less
+legible), rows wrap at four, and the node cap **reports how many it hid**
+rather than truncating silently.
+
+## Skills — `/skills`
+
+Every part already existed and none of it was connected: the prompt library
+held intent, MCP held sources, content safety held guardrails, the Inbox held
+approval. A Skill binds them into one saved thing.
+
+| Property | How |
+|---|---|
+| Guardrails enforced **in code** | A word limit in a prompt is a suggestion; `max_output_words` fails the run |
+| `local_only` + a web source | Refused as a contradiction, not silently resolved |
+| Acting needs approval | Anything beyond returning text raises an Inbox ask |
+| Publishing needs a simulation | You cannot promote a skill you have never watched run |
+| A simulation writes nothing | …but is still recorded — "what would this have done" is the useful part |
+
+**The generator survives as a built-in Skill.** Its permissions render
+straight from config:
+
+```
+Seven-artifact document set
+  CAN     ✓ Read your project documents  ✓ Read your backlog
+          ✓ Save a document (with your approval)
+  CANNOT  ✗ Search the web  ✗ Use connected tools
+          ✗ Run code or install anything  ✗ Send your data anywhere
+```
+
+Verified live against Ollama: forked a built-in, publish returned **409**
+until a simulation succeeded, simulated in 17s with a clean four-step trace
+(sources → intent → guardrails → review), then published.
+
+## Time-blocked planning
+
+`propose_daily_plan` answered *what*; this answers *when*.
+
+```
+=== 2026-07-27 — 58.8% utilised · fits=False · 2 partial ===
+  09:00–11:30 DEEP  ~Offline Syncing        150m
+  12:30–13:30 ----   Lunch                   60m
+  13:30–16:00 ADMIN ~Advanced Search        150m
+
+  ~ Offline Syncing   A first block on this — the estimate is about 5.2h in total.
+  did not fit:
+    - Offline export to PDF   Needs 150 minutes and the day is full.
+```
+
+Deep work goes **where your energy is, not where there is room** — highest
+value first into the morning window, before anything else is placed. Every
+block gets a buffer so one overrun does not cascade. Lunch is a real block
+and nothing is scheduled across it. Work that will not fit is **named**, and
+a block that had to be capped says so rather than reading as finishable.
+
+**Bug found here:** `commit_daily_plan` normalised every item to four
+hard-coded keys, so a committed schedule read back with the times dropped.
+
+## Journal and the app registry
+
+The journal is **not** a second capture inbox — Ideas owns that. It is a
+dated reflection whose useful property is `auto_entry`, which drafts the day
+from the Activity Timeline. Verified: drafted 13 real events from today. An
+entry stops being flagged a draft the moment a human edits it.
+
+The app registry names the surfaces as apps over one shared substrate, and is
+generated from the systems themselves so it cannot advertise something
+unwired:
+
+```
+memory       One database on this device. Every app reads the same documents…
+permissions  One approval gate. Anything consequential raises an ask in your Inbox…
+work_graph   One graph. A decision blocking work blocks it everywhere.
+```
+
+## Still to do on this track
+
+The **UI reskin** — the serif display type and cream/dark palette from the
+mockups — is deliberately last. The data model now earns it; doing it first
+would have been decoration over a model that could not support the screens.
