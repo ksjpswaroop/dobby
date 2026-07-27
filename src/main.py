@@ -282,6 +282,10 @@ app.include_router(automation_router)
 from src.api.idea_routes import router as idea_router
 app.include_router(idea_router)
 
+# Include activity timeline routes (unified feed over ideas/features/runs/research)
+from src.api.timeline_routes import router as timeline_router
+app.include_router(timeline_router)
+
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])

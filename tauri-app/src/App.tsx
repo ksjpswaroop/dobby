@@ -17,6 +17,7 @@ import Bulk from './pages/Bulk';
 import Settings from './pages/Settings';
 import Planned from './pages/Planned';
 import Logs from './pages/Logs';
+import Activity from './pages/Activity';
 import Search from './pages/Search';
 import CommandCenter from './pages/CommandCenter';
 import MindMapPage from './pages/MindMapPage';
@@ -50,6 +51,7 @@ function App() {
         <Route path="/graph" element={<GraphPage />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/logs" element={<Logs />} />
+        <Route path="/activity" element={<Activity />} />
         <Route path="/search" element={<Search />} />
         <Route path="/mindmap" element={<MindMapPage />} />
         {/* The Command Center *is* the ⌘K palette; this route just opens it. */}

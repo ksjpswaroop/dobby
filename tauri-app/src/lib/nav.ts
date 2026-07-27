@@ -4,7 +4,7 @@ import {
   IconAudio, IconYouTube, IconNotes,
   IconCommand, IconSkill, IconFlow,
   IconTerminal, IconLogs, IconControl, IconSearch, IconSettings,
-  IconMarket, IconSparkles, IconResearch, IconServer, IconBulb,
+  IconMarket, IconSparkles, IconResearch, IconServer, IconBulb, IconActivity,
 } from './icons';
 
 export type NavStatus = 'live' | 'planned';
@@ -108,6 +108,7 @@ export const NAV_SECTIONS: NavSection[] = [
     icon: IconTerminal,
     hint: 'Terminal, traces, and search across everything',
     items: [
+      { label: 'Activity', route: '/activity', icon: IconActivity, status: 'live' },
       { label: 'Logs & Traces', route: '/logs', icon: IconLogs, status: 'live' },
       { label: 'Search', route: '/search', icon: IconSearch, status: 'live' },
     ],
