@@ -194,8 +194,18 @@ class TestDurations:
         big = svc.build_schedule([item("Big", estimate=3)], plan_date="2026-07-27")
         assert work_blocks(big)[0]["minutes"] > work_blocks(small)[0]["minutes"]
 
-    def test_tiny_estimates_get_a_minimum_block(self):
+    def test_a_tiny_remainder_is_not_padded_up_to_the_floor(self):
+        # Deliberate change: the 30-minute floor used to win here. Inflating a
+        # few minutes of remaining work into a half-hour block over-books the
+        # day with work that does not exist — on precisely the day someone is
+        # clearing the last of something.
         out = svc.build_schedule([item("Tiny", estimate=0.1)], plan_date="2026-07-27")
+        block = work_blocks(out)[0]
+        assert block["minutes"] <= svc.effort.points_to_minutes(0.1)
+        assert block["minutes"] > 0
+
+    def test_the_floor_still_applies_to_ordinary_work(self):
+        out = svc.build_schedule([item("Normal", estimate=1)], plan_date="2026-07-27")
         assert work_blocks(out)[0]["minutes"] >= svc.DEFAULT_DAY["min_block_minutes"]
 
     def test_huge_estimates_are_capped(self):

@@ -28,7 +28,11 @@ class ShapeOverrides(BaseModel):
 
 
 class PlanRequest(BaseModel):
-    capacity: float = 6.0
+    # None, not a number: a default here would silently override plan_day's
+    # "use the workable day" calculation, which is what capped every plan at
+    # 4h30 and left the afternoon empty.
+    capacity: Optional[float] = None
+    capacity_minutes: Optional[int] = None
     plan_date: Optional[str] = None
     shape: Optional[ShapeOverrides] = None
 
@@ -55,7 +59,8 @@ async def plan_day(project_id: str, req: PlanRequest,
                    db: DatabaseManager = Depends(get_db)):
     try:
         return svc.plan_day(db, project_id, req.capacity, req.plan_date,
-                            req.shape.model_dump(exclude_none=True) if req.shape else None)
+                            req.shape.model_dump(exclude_none=True) if req.shape else None,
+                            req.capacity_minutes)
     except svc.TimeblockError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

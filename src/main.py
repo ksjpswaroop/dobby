@@ -358,6 +358,10 @@ app.include_router(shared_router)
 from src.api.decision_routes import router as decision_router
 app.include_router(decision_router)
 
+# Include time-tracking routes (what the day actually went on)
+from src.api.time_routes import router as time_router
+app.include_router(time_router)
+
 # Include journal + app-registry routes
 from src.api.journal_routes import router as journal_router
 from src.api.journal_routes import apps_router

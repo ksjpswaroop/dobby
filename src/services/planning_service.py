@@ -69,7 +69,12 @@ def _blocked_ids(s, project_id: str) -> Set[str]:
     return {r.feature_id for r in rows if r.blocked_by_id not in done}
 
 
-def _card(f: FeatureBacklog, m: PlanningMeta, blocked: bool) -> Dict[str, Any]:
+def _card(f: FeatureBacklog, m: PlanningMeta, blocked: bool,
+          spent_minutes: int = 0) -> Dict[str, Any]:
+    from src.services import effort
+
+    estimated = effort.points_to_minutes(m.estimate)
+    remaining = max(0, estimated - spent_minutes)
     return {
         "feature_id": f.id,
         "title": f.title,
@@ -85,6 +90,14 @@ def _card(f: FeatureBacklog, m: PlanningMeta, blocked: bool) -> Dict[str, Any]:
         "milestone_id": m.milestone_id,
         "order_index": m.order_index or 0,
         "node_id": f.node_id,
+        # Real progress, not a guess. `remaining_minutes` is what the
+        # scheduler places — using the full estimate every day is why a
+        # capped block used to repeat forever without the work shrinking.
+        "estimated_minutes": estimated,
+        "spent_minutes": spent_minutes,
+        "remaining_minutes": remaining,
+        "percent_spent": round(100.0 * spent_minutes / estimated, 1) if estimated else 0.0,
+        "over_estimate": spent_minutes > estimated,
     }
 
 
@@ -93,6 +106,10 @@ def _card(f: FeatureBacklog, m: PlanningMeta, blocked: bool) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 def get_board(db: DatabaseManager, project_id: str,
               sprint_id: Optional[str] = None) -> Dict[str, Any]:
+    from src.services import time_service
+
+    spent = time_service.spent_map(db, project_id)
+
     with db.get_session() as s:
         features = (s.query(FeatureBacklog)
                     .filter(FeatureBacklog.project_id == project_id).all())
@@ -103,7 +120,7 @@ def get_board(db: DatabaseManager, project_id: str,
             m = _meta(s, f)
             if sprint_id and m.sprint_id != sprint_id:
                 continue
-            card = _card(f, m, f.id in blocked)
+            card = _card(f, m, f.id in blocked, spent.get(f.id, 0))
             columns[card["column"]].append(card)
         s.commit()
 
@@ -252,9 +269,10 @@ def ready_features(db: DatabaseManager, project_id: str) -> List[Dict[str, Any]]
     hard as an unbuilt prerequisite, and treating it otherwise is how a
     "ready" list fills up with things nobody can actually start.
     """
-    from src.services import decision_service
+    from src.services import decision_service, time_service
 
     decision_blocked = decision_service.blocked_entity_ids(db, project_id, "feature")
+    spent = time_service.spent_map(db, project_id)
 
     with db.get_session() as s:
         blocked = _blocked_ids(s, project_id) | decision_blocked
@@ -265,7 +283,7 @@ def ready_features(db: DatabaseManager, project_id: str) -> List[Dict[str, Any]]
             m = _meta(s, f)
             if m.board_column == "done" or f.id in blocked:
                 continue
-            out.append(_card(f, m, False))
+            out.append(_card(f, m, False, spent.get(f.id, 0)))
         s.commit()
     out.sort(key=lambda c: -c["pareto_score"])
     return out
@@ -523,20 +541,89 @@ def timeline(db: DatabaseManager, project_id: str) -> Dict[str, Any]:
 # Daily plan (D47)
 # ---------------------------------------------------------------------------
 def propose_daily_plan(db: DatabaseManager, project_id: str,
-                       capacity: float = DEFAULT_DAILY_CAPACITY) -> Dict[str, Any]:
-    """The highest-value ready work that fits today's capacity."""
+                       capacity: Optional[float] = None,
+                       capacity_minutes: Optional[int] = None,
+                       max_per_item_minutes: Optional[int] = None) -> Dict[str, Any]:
+    """The highest-value ready work that fits today, measured in minutes.
+
+    Minutes, not points, because the scheduler places minutes. When these two
+    disagreed a capacity of 8 points admitted one 7-point item, the block cap
+    trimmed it to 2.5 hours, and four hours of the day sat empty at 29%
+    utilisation. One unit, one conversion — see `services/effort`.
+
+    `capacity` (points) is still accepted so existing callers keep working;
+    it is converted immediately and never used for arithmetic after that.
+
+    What gets packed is **remaining** minutes, so an item already half done
+    only claims the half that is left.
+    """
+    from src.services import effort
+
+    if capacity_minutes is None:
+        points = capacity if capacity is not None else DEFAULT_DAILY_CAPACITY
+        capacity_minutes = effort.points_to_minutes(points)
+    capacity_minutes = max(0, int(capacity_minutes))
+
+    # One day can only give a single item one sitting, so an item claims at
+    # most that. Letting a 5-hour item claim all five hours of capacity is
+    # what left the afternoon empty: the planner booked time the scheduler
+    # was never going to place.
+    per_item_cap = int(max_per_item_minutes or effort.DEFAULT_MAX_BLOCK_MINUTES)
+
     ready = ready_features(db, project_id)
-    chosen, used = [], 0.0
+    chosen, used = [], 0
+    not_today: List[Dict[str, Any]] = []
+
     for card in ready:
-        est = card["estimate"] or 1.0
-        if used + est > capacity and chosen:
-            break
-        chosen.append({"feature_id": card["feature_id"], "title": card["title"],
-                       "estimate": est, "pareto_score": card["pareto_score"],
-                       "done": False})
-        used += est
-    return {"proposed": chosen, "capacity": capacity,
-            "planned_estimate": round(used, 2), "ready_count": len(ready)}
+        remaining = card.get("remaining_minutes")
+        if remaining is None:
+            remaining = effort.points_to_minutes(card.get("estimate"))
+        # Nothing left to do on it — it needs finishing or re-estimating,
+        # not another block of time.
+        if remaining <= 0:
+            continue
+
+        claim = min(remaining, per_item_cap)
+        if used + claim > capacity_minutes:
+            # Keep looking rather than stopping. Breaking here left the rest
+            # of the day empty whenever the next-best item happened to be
+            # large; priority is already preserved by the sort order.
+            not_today.append({
+                "feature_id": card["feature_id"], "title": card["title"],
+                "remaining_minutes": remaining,
+                "reason": f"Needs {effort.humanise(claim)} and only "
+                          f"{effort.humanise(capacity_minutes - used)} is left today.",
+            })
+            continue
+
+        chosen.append({
+            "feature_id": card["feature_id"], "title": card["title"],
+            "estimate": card.get("estimate"),
+            "estimated_minutes": card.get("estimated_minutes", remaining),
+            "spent_minutes": card.get("spent_minutes", 0),
+            "remaining_minutes": remaining,
+            "today_minutes": claim,
+            "pareto_score": card["pareto_score"],
+            "done": False,
+        })
+        used += claim
+
+    return {
+        "proposed": chosen,
+        "capacity_minutes": capacity_minutes,
+        "capacity_human": effort.humanise(capacity_minutes),
+        "planned_minutes": used,
+        "planned_human": effort.humanise(used),
+        "ready_count": len(ready),
+        # Ready work the day could not hold. Without this the caller reports
+        # "0 did not fit" while quietly having skipped things, which reads as
+        # "everything is handled" when it is not.
+        "not_today": not_today,
+        # Kept so older callers and the existing UI keep reading a number
+        # they understand, but derived from minutes rather than driving them.
+        "capacity": effort.minutes_to_points(capacity_minutes),
+        "planned_estimate": effort.minutes_to_points(used),
+    }
 
 
 def commit_daily_plan(db: DatabaseManager, project_id: str, plan_date: str,

@@ -119,6 +119,10 @@ class Settings:
     # appends nothing to prompts, so the English path is unchanged.
     output_language: str = "en"
 
+    # Effort conversion, shared by the planner and the scheduler. Exposed
+    # because 45 minutes per point is a guess about *your* work, not a fact.
+    minutes_per_point: int = 45
+
     # User-composed pipelines, keyed by project (D92). Steps come from a fixed
     # catalogue — never user code, for the same reason custom rules don't.
     pipelines: Dict[str, Any] = field(default_factory=dict)

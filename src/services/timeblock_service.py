@@ -34,9 +34,11 @@ from src.db.schema import DatabaseManager
 
 logger = structlog.get_logger()
 
-# Minutes of real work one estimate point represents. Deliberately generous:
-# a planner that assumes best-case throughput produces days nobody finishes.
-MINUTES_PER_POINT = 45
+from src.services import effort
+
+# Kept as a module attribute because callers and tests read it; the value now
+# lives in `services/effort` so the planner and the scheduler cannot drift.
+MINUTES_PER_POINT = effort.DEFAULT_MINUTES_PER_POINT
 
 DEFAULT_DAY = {
     "start": "09:00",
@@ -93,18 +95,48 @@ def day_shape(overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     return shape
 
 
-def _minutes_for(estimate: Optional[float], shape: Dict[str, Any]) -> tuple:
-    """Block length, and whether the estimate had to be capped.
+def _minutes_for(item: Dict[str, Any], shape: Dict[str, Any]) -> tuple:
+    """Block length, and how much of the item is left after it.
+
+    Prefers `remaining_minutes` over the raw estimate, so an item that has
+    already had two hours today only asks for what is left. Using the full
+    estimate every day is why a capped block used to repeat forever with the
+    work never visibly shrinking.
 
     Capping silently would be the dishonest move: a 7-point item shown as a
-    150-minute block reads as something you can finish today, when the
-    estimate says it is most of a week. The caller surfaces the difference.
+    150-minute block reads as finishable today when the estimate says it is
+    most of a week. The caller surfaces the difference.
     """
-    points = float(estimate or 1.0)
-    wanted = int(round(points * MINUTES_PER_POINT))
+    wanted = item.get("remaining_minutes")
+    if wanted is None:
+        wanted = effort.points_to_minutes(item.get("estimate"))
+    wanted = max(0, int(wanted))
+
     minutes = max(int(shape["min_block_minutes"]),
                   min(wanted, int(shape["max_block_minutes"])))
+    # The floor and "never over-book" conflict for a nearly-finished item, and
+    # the floor loses: inflating 8 minutes of remaining work into a 30-minute
+    # block books 22 minutes of work that does not exist, and does it on the
+    # day someone is trying to clear the last of something. A short block is
+    # honest; a padded one quietly makes the day too full.
+    minutes = min(minutes, wanted) if wanted else minutes
     return minutes, wanted > minutes, wanted
+
+
+def _why(item: Dict[str, Any], minutes: int, wanted: int, capped: bool,
+         default: str) -> str:
+    """The sentence under a block. Says what is left, not what was estimated."""
+    spent = int(item.get("spent_minutes") or 0)
+    if not capped:
+        if spent:
+            return f"{effort.humanise(spent)} already in — this should finish it."
+        return default
+    left = max(0, wanted - minutes)
+    if spent:
+        return (f"{effort.humanise(spent)} in, {effort.humanise(wanted)} left. "
+                f"This block leaves {effort.humanise(left)}.")
+    return (f"A first block — {effort.humanise(wanted)} in total, "
+            f"leaving {effort.humanise(left)} after this.")
 
 
 def _to_dt(day: date, t: time) -> datetime:
@@ -171,7 +203,7 @@ def build_schedule(items: List[Dict[str, Any]], plan_date: Optional[str] = None,
 
     # Pass one: the most valuable work into the deep-work window.
     for item in ranked:
-        minutes, capped, wanted = _minutes_for(item.get("estimate"), shape)
+        minutes, capped, wanted = _minutes_for(item, shape)
         placed = cursor.place(minutes, not_after=deep_end)
         if placed:
             start, finish = placed
@@ -183,11 +215,11 @@ def build_schedule(items: List[Dict[str, Any]], plan_date: Optional[str] = None,
                 "minutes": minutes,
                 "estimate": item.get("estimate"),
                 "partial": capped,
-                "estimated_minutes": wanted,
-                "why": ("Highest-value work, placed while your focus is best."
-                        if not capped else
-                        f"A first block on this — the estimate is about "
-                        f"{round(wanted / 60, 1)}h in total."),
+                "remaining_minutes": wanted,
+                "spent_minutes": item.get("spent_minutes", 0),
+                "leaves_remaining": max(0, wanted - minutes),
+                "why": _why(item, minutes, wanted, capped,
+                            "Highest-value work, placed while your focus is best."),
             })
         else:
             deferred.append(item)
@@ -204,7 +236,7 @@ def build_schedule(items: List[Dict[str, Any]], plan_date: Optional[str] = None,
 
     # Pass two: everything else into the rest of the day.
     for item in deferred:
-        minutes, capped, wanted = _minutes_for(item.get("estimate"), shape)
+        minutes, capped, wanted = _minutes_for(item, shape)
         placed = cursor.place(minutes)
         if placed:
             start, finish = placed
@@ -216,10 +248,11 @@ def build_schedule(items: List[Dict[str, Any]], plan_date: Optional[str] = None,
                 "minutes": minutes,
                 "estimate": item.get("estimate"),
                 "partial": capped,
-                "estimated_minutes": wanted,
-                "why": ("Scheduled after the deep-work window."
-                        if not capped else
-                        f"A first block on this — about {round(wanted / 60, 1)}h in total."),
+                "remaining_minutes": wanted,
+                "spent_minutes": item.get("spent_minutes", 0),
+                "leaves_remaining": max(0, wanted - minutes),
+                "why": _why(item, minutes, wanted, capped,
+                            "Scheduled after the deep-work window."),
             })
         else:
             unscheduled.append({
@@ -253,20 +286,54 @@ def build_schedule(items: List[Dict[str, Any]], plan_date: Optional[str] = None,
 
 
 def plan_day(db: DatabaseManager, project_id: str,
-             capacity: float = 6.0, plan_date: Optional[str] = None,
-             overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+             capacity: Optional[float] = None, plan_date: Optional[str] = None,
+             overrides: Optional[Dict[str, Any]] = None,
+             capacity_minutes: Optional[int] = None) -> Dict[str, Any]:
     """What to do today *and* when — one call.
 
-    Capacity defaults higher than the untimed planner's, because a day laid
-    out on the clock can hold more than a list someone eyeballs.
+    Capacity defaults to the working day itself rather than a number someone
+    guessed: the planner and the scheduler now share a unit, so "what fits"
+    can simply be "what fits between start and end, minus lunch".
     """
     from src.services import planning_service
 
-    proposal = planning_service.propose_daily_plan(db, project_id, capacity)
+    shape = day_shape(overrides)
+    if capacity_minutes is None and capacity is None:
+        capacity_minutes = _workable_minutes(shape)
+
+    proposal = planning_service.propose_daily_plan(
+        db, project_id, capacity, capacity_minutes,
+        max_per_item_minutes=int(shape["max_block_minutes"]))
     schedule = build_schedule(proposal["proposed"], plan_date, overrides)
     schedule["ready_count"] = proposal["ready_count"]
-    schedule["capacity"] = capacity
+    schedule["capacity_minutes"] = proposal["capacity_minutes"]
+    schedule["capacity_human"] = proposal["capacity_human"]
+    # Two different ways work can miss the day, and the caller should see
+    # both: the planner never offered it, or the clock had no room.
+    schedule["not_today"] = proposal.get("not_today", [])
+    schedule["fits"] = not schedule["unscheduled"] and not schedule["not_today"]
     return schedule
+
+
+def _workable_minutes(shape: Dict[str, Any]) -> int:
+    """Minutes actually available: the day, minus lunch, minus buffers.
+
+    Handing the planner the raw day length would over-fill it by exactly the
+    time the scheduler then spends on breaks and gaps.
+    """
+    day = _parse_hhmm(shape["end"], "end")
+    start = _parse_hhmm(shape["start"], "start")
+    lunch_start = _parse_hhmm(shape["lunch_start"], "lunch_start")
+    lunch_end = _parse_hhmm(shape["lunch_end"], "lunch_end")
+
+    def mins(t):
+        return t.hour * 60 + t.minute
+
+    total = mins(day) - mins(start)
+    total -= max(0, mins(lunch_end) - mins(lunch_start))
+    # Roughly one buffer per two-hour block; better to under-promise.
+    total -= int(shape["buffer_minutes"]) * max(1, total // 120)
+    return max(0, total)
 
 
 def commit_day(db: DatabaseManager, project_id: str, plan_date: str,
