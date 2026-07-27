@@ -310,3 +310,11 @@ async def health_check() -> Dict[str, Any]:
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
     }
+
+
+@router.get("/projects/{project_id}/home")
+async def get_home(project_id: str, db: DatabaseManager = Depends(get_db)) -> Dict[str, Any]:
+    """Today's actionable slice — one round-trip for the landing screen."""
+    from src.services.home_service import build_home
+
+    return build_home(db, project_id)

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import api, { DashboardData } from '../api/client';
 import { Card, LoadingState, ErrorState, Badge, Button, PageHeader } from '../components/ui';
 import { PinnedStrip } from '../components/PinnedStrip';
+import { TodayHome } from '../components/TodayHome';
 import { useProject } from '../lib/project';
 import {
   IconWizard,
@@ -100,9 +101,10 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Dashboard" subtitle="Your local document workspace at a glance." />
+      <PageHeader title="Today" subtitle="Your local document workspace at a glance." />
 
       <PinnedStrip />
+      <TodayHome />
 
       {/* Stats (click through to the matching view) */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
