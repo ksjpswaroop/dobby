@@ -103,16 +103,51 @@ def project_root(project_id: str) -> Path:
     return root
 
 
-def _resolve_cwd(project_id: str, cwd: Optional[str]) -> Path:
+def _extra_roots(workspace_roots: Optional[List[str]]) -> List[Path]:
+    """Additional absolute directories a session has explicitly been granted.
+
+    `WorkSession.workspace_roots` (OW row 23) already carries this list —
+    empty means "just the project workspace," per its own docstring. This is
+    what makes that list mean something: without it, the terminal ignored it
+    entirely and every session was scoped to one directory regardless.
+    """
+    if not workspace_roots:
+        return []
+    return [Path(r).expanduser().resolve() for r in workspace_roots]
+
+
+def _resolve_cwd(project_id: str, cwd: Optional[str],
+                 workspace_roots: Optional[List[str]] = None) -> Path:
+    """Where a command may run.
+
+    A relative `cwd` always resolves against the project workspace — unchanged
+    from before, so a plain project session behaves exactly as it always has.
+    An *absolute* `cwd` is additionally allowed inside any of the session's
+    extra roots, which is the natural way a multi-root session is actually
+    used ("run this in the other project I have open"), rather than an
+    implicit relative-path fallback across roots that could silently land a
+    command in a same-named subdirectory of the wrong one.
+    """
     root = project_root(project_id)
     if not cwd:
         return root
-    candidate = (root / cwd).resolve() if not os.path.isabs(cwd) else Path(cwd).resolve()
-    # `resolve()` collapses .. before this check, so traversal cannot slip past.
-    if candidate != root and root not in candidate.parents:
-        raise TerminalError(
-            f"Working directory must stay inside the project workspace ({root})."
-        )
+
+    if os.path.isabs(cwd):
+        candidate = Path(cwd).resolve()
+        permitted = [root] + _extra_roots(workspace_roots)
+        # `resolve()` collapses .. before this check, so traversal cannot slip past.
+        if not any(candidate == r or r in candidate.parents for r in permitted):
+            names = ", ".join(str(r) for r in permitted)
+            raise TerminalError(
+                f"Working directory must stay inside a permitted workspace ({names})."
+            )
+    else:
+        candidate = (root / cwd).resolve()
+        if candidate != root and root not in candidate.parents:
+            raise TerminalError(
+                f"Working directory must stay inside the project workspace ({root})."
+            )
+
     if not candidate.is_dir():
         raise TerminalError(f"No such directory: {candidate}")
     return candidate
@@ -166,8 +201,13 @@ def classify(argv: List[str]) -> Dict[str, Any]:
 
 async def run(db: DatabaseManager, project_id: str, command: str,
               cwd: Optional[str] = None, timeout: int = DEFAULT_TIMEOUT,
-              source: str = "manual") -> Dict[str, Any]:
-    """Execute a command, gating it behind approval unless allowlisted."""
+              source: str = "manual", session_id: Optional[str] = None) -> Dict[str, Any]:
+    """Execute a command, gating it behind approval unless allowlisted.
+
+    `session_id`, when given, extends the permitted directories with that
+    session's `workspace_roots` (OW row 23) — otherwise a command is scoped to
+    the single project workspace exactly as before.
+    """
     argv = parse(command)
     verdict = classify(argv)
     if verdict["decision"] == "denied":
@@ -177,7 +217,14 @@ async def run(db: DatabaseManager, project_id: str, command: str,
             "if you genuinely need it."
         )
 
-    working = _resolve_cwd(project_id, cwd)
+    workspace_roots = None
+    if session_id:
+        from src.services import session_service
+
+        session = session_service.get(db, session_id)
+        workspace_roots = session["workspace_roots"] if session else None
+
+    working = _resolve_cwd(project_id, cwd, workspace_roots)
     timeout = max(1, min(int(timeout or DEFAULT_TIMEOUT), MAX_TIMEOUT))
 
     if verdict["decision"] == "ask":

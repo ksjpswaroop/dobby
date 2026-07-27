@@ -29,6 +29,7 @@ class RunRequest(BaseModel):
     command: str = Field(..., min_length=1, max_length=4000)
     cwd: Optional[str] = None
     timeout: int = svc.DEFAULT_TIMEOUT
+    session_id: Optional[str] = None
 
 
 @router.get("/meta")
@@ -69,6 +70,7 @@ async def check(req: CheckRequest, db: DatabaseManager = Depends(get_db)):
 @router.post("/run")
 async def run(req: RunRequest, db: DatabaseManager = Depends(get_db)):
     try:
-        return await svc.run(db, req.project_id, req.command, req.cwd, req.timeout)
+        return await svc.run(db, req.project_id, req.command, req.cwd, req.timeout,
+                             session_id=req.session_id)
     except svc.TerminalError as e:
         raise HTTPException(status_code=400, detail=str(e))

@@ -208,6 +208,16 @@ export interface RunInfo {
   finished_at: string | null;
 }
 
+export interface TodoItem {
+  key: string;
+  label: string;
+  status: 'pending' | 'in_progress' | 'done' | 'failed';
+  detail: string;
+  duration_ms: number | null;
+  first_seen: string;
+  last_seen: string;
+}
+
 export interface RunEventItem {
   seq: number;
   level: 'info' | 'warn' | 'error';
@@ -474,6 +484,10 @@ export const api = {
 
   async getRun(runId: string): Promise<{ run: RunInfo; events: RunEventItem[] }> {
     return http('GET', `/runs/${runId}`);
+  },
+
+  async getRunTodo(runId: string): Promise<{ run: RunInfo; todo: TodoItem[] }> {
+    return http('GET', `/runs/${runId}/todo`);
   },
 
   async clearRuns(projectId?: string): Promise<{ deleted: number }> {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import api, { RunInfo, RunEventItem } from '../api/client';
+import api, { RunInfo, RunEventItem, TodoItem } from '../api/client';
 import { Card, Button, PageHeader, Badge, LoadingState, ErrorState, EmptyState } from '../components/ui';
-import { IconLogs, IconRefresh, IconTrash, IconBolt } from '../lib/icons';
+import { IconLogs, IconRefresh, IconTrash, IconBolt, IconCheck, IconX } from '../lib/icons';
 import { cn } from '../lib/cn';
 import { useProject } from '../lib/project';
 import { useRunStream } from '../lib/runStream';
@@ -37,6 +37,8 @@ export default function Logs() {
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<{ run: RunInfo; events: RunEventItem[] } | null>(null);
+  const [view, setView] = useState<'trace' | 'checklist'>('trace');
+  const [todo, setTodo] = useState<TodoItem[] | null>(null);
 
   const load = async () => {
     try {
@@ -69,6 +71,13 @@ export default function Logs() {
     if (!selectedId) return setDetail(null);
     api.getRun(selectedId).then(setDetail).catch(() => setDetail(null));
   }, [selectedId, live.length]);
+
+  // Only fetched while the checklist tab is showing — the trace view already
+  // has everything it needs from `detail`, no reason to double-fetch.
+  useEffect(() => {
+    if (!selectedId || view !== 'checklist') return;
+    api.getRunTodo(selectedId).then((r) => setTodo(r.todo)).catch(() => setTodo(null));
+  }, [selectedId, view, live.length]);
 
   const liveByRun = useMemo(() => {
     const m = new Map<string, { completed: number; total: number; message: string }>();
@@ -211,7 +220,78 @@ export default function Logs() {
                       {detail.run.error}
                     </p>
                   )}
+                  <div className="mt-3 flex gap-1" role="tablist" aria-label="Run detail view">
+                    {(['trace', 'checklist'] as const).map((v) => (
+                      <button
+                        key={v}
+                        role="tab"
+                        aria-selected={view === v}
+                        onClick={() => setView(v)}
+                        className={cn(
+                          'rounded-lg px-2.5 py-1 text-xs font-medium capitalize transition-colors',
+                          view === v ? 'bg-brand/10 text-brand' : 'text-ink-muted hover:bg-surface2'
+                        )}
+                      >
+                        {v === 'trace' ? 'Trace' : 'Checklist'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+                {view === 'checklist' ? (
+                  <div className="flex-1 overflow-y-auto p-4">
+                    {!todo ? (
+                      <p className="text-sm text-ink-muted">Loading…</p>
+                    ) : !todo.length ? (
+                      <p className="text-sm text-ink-muted">No steps recorded for this run.</p>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {todo.map((t) => (
+                          <li
+                            key={t.key}
+                            className="flex items-start gap-2.5 rounded-xl border border-line px-3 py-2"
+                          >
+                            <span
+                              className={cn(
+                                'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full',
+                                t.status === 'done'
+                                  ? 'bg-success text-white'
+                                  : t.status === 'failed'
+                                  ? 'bg-danger text-white'
+                                  : t.status === 'in_progress'
+                                  ? 'border-2 border-brand'
+                                  : 'border-2 border-line'
+                              )}
+                            >
+                              {t.status === 'done' && <IconCheck size={10} />}
+                              {t.status === 'failed' && <IconX size={10} />}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div
+                                className={cn(
+                                  'text-sm',
+                                  t.status === 'pending' ? 'text-ink-muted' : 'text-ink',
+                                  t.status === 'in_progress' && 'font-medium'
+                                )}
+                              >
+                                {t.label}
+                              </div>
+                              {t.detail && (
+                                <div className="mt-0.5 truncate text-xs text-ink-muted">
+                                  {t.detail}
+                                </div>
+                              )}
+                            </div>
+                            {t.duration_ms != null && (
+                              <span className="shrink-0 font-mono text-[11px] text-ink-muted">
+                                {fmtDuration(t.duration_ms)}
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ) : (
                 <div className="flex-1 overflow-y-auto p-4">
                   <ol className="relative space-y-0 border-l border-line pl-5">
                     {detail.events.map((e) => (
@@ -256,6 +336,7 @@ export default function Logs() {
                     </div>
                   )}
                 </div>
+                )}
               </>
             ) : (
               <div className="flex flex-1 items-center justify-center text-sm text-ink-muted">

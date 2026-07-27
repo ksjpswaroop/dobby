@@ -24,21 +24,12 @@ from src.db.schema import DatabaseManager
 from src.personas.manifest import (
     ManifestError, Persona, builtins, parse, render,
 )
+from src.security.content_safety import scan as _scan_suspicious
 
 logger = structlog.get_logger()
 
 PERSONA_DIR = Path.home() / ".dobby" / "personas"
 STATE_FILE = PERSONA_DIR / "_state.json"
-
-# Phrases that try to talk a model out of its instructions. Their presence in
-# an installed persona is surfaced on the consent card — not blocked, because
-# legitimate prompts discuss these ideas, but never hidden either.
-_SUSPICIOUS = [
-    "ignore previous", "ignore all previous", "disregard the above",
-    "disregard your instructions", "you have no restrictions",
-    "without asking permission", "do not ask the user",
-    "bypass", "jailbreak", "reveal your system prompt",
-]
 
 
 class RegistryError(Exception):
@@ -146,8 +137,7 @@ def set_enabled(persona_id: str, enabled: bool) -> Dict[str, Any]:
 def inspect(text: str) -> Dict[str, Any]:
     """What a manifest declares, for the consent card — without installing it."""
     persona = parse(text)
-    lowered = persona.system_prompt.lower()
-    flags = [phrase for phrase in _SUSPICIOUS if phrase in lowered]
+    flags = _scan_suspicious(persona.system_prompt)
     return {
         "persona": persona.to_dict(),
         "warnings": flags,

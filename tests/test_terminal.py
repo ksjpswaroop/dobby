@@ -146,6 +146,61 @@ class TestWorkspaceScoping:
             svc._resolve_cwd(PROJECT, "definitely-not-here")
 
 
+class TestMultiRootScoping:
+    """OW row 23: a session's workspace_roots must actually be honored."""
+
+    def test_an_absolute_path_in_an_extra_root_is_allowed(self, tmp_path):
+        extra = tmp_path / "other-project"
+        extra.mkdir()
+        result = svc._resolve_cwd(PROJECT, str(extra), workspace_roots=[str(tmp_path)])
+        assert result == extra.resolve()
+
+    def test_an_absolute_path_outside_every_root_is_still_refused(self, tmp_path):
+        with pytest.raises(svc.TerminalError, match="permitted workspace"):
+            svc._resolve_cwd(PROJECT, "/etc", workspace_roots=[str(tmp_path)])
+
+    def test_no_extra_roots_behaves_exactly_as_before(self, tmp_path):
+        """Backward compatibility: a plain session must not gain new access."""
+        with pytest.raises(svc.TerminalError, match="permitted workspace"):
+            svc._resolve_cwd(PROJECT, str(tmp_path), workspace_roots=None)
+
+    def test_a_relative_path_ignores_extra_roots(self, tmp_path):
+        """Relative cwd always means 'inside the project workspace' — an extra
+        root does not change what a bare relative path resolves against."""
+        root = svc.project_root(PROJECT)
+        (root / "sub").mkdir(exist_ok=True)
+        result = svc._resolve_cwd(PROJECT, "sub", workspace_roots=[str(tmp_path)])
+        assert result == (root / "sub").resolve()
+
+    def test_traversal_cannot_escape_via_an_extra_root(self, tmp_path):
+        extra = tmp_path / "other-project"
+        extra.mkdir()
+        with pytest.raises(svc.TerminalError, match="permitted workspace"):
+            svc._resolve_cwd(PROJECT, str(extra / ".." / ".." / "etc"),
+                             workspace_roots=[str(tmp_path)])
+
+    @pytest.mark.asyncio
+    async def test_run_honors_the_sessions_workspace_roots(self, db, allow, tmp_path, monkeypatch):
+        from src.services import session_service
+
+        extra = tmp_path / "other-project"
+        extra.mkdir()
+        allow("pwd")
+        session = session_service.create(db, PROJECT, "Multi-root test")
+        monkeypatch.setitem(session, "workspace_roots", [str(tmp_path)])
+        monkeypatch.setattr(session_service, "get", lambda db, sid: session)
+
+        out = await svc.run(db, PROJECT, f"pwd", cwd=str(extra), session_id=session["id"])
+        assert out["ran"] and out["stdout"].strip() == str(extra.resolve())
+
+    @pytest.mark.asyncio
+    async def test_run_without_a_session_id_ignores_workspace_roots(self, db, allow):
+        """No session_id passed — must behave exactly like before this feature."""
+        allow("pwd")
+        out = await svc.run(db, PROJECT, "pwd")
+        assert out["ran"] and out["cwd"] == str(svc.project_root(PROJECT))
+
+
 class TestExecution:
     @pytest.mark.asyncio
     async def test_an_allowlisted_command_runs_and_captures_output(self, db, allow):

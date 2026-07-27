@@ -21,6 +21,7 @@ from fastapi.responses import StreamingResponse
 from src.db.run_models import Run, RunEvent
 from src.db.schema import DatabaseManager
 from src.observability.tracer import subscribe, unsubscribe
+from src.services.run_todo import derive_todo
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/api/v1", tags=["Runs"])
@@ -90,32 +91,47 @@ async def stream_runs() -> StreamingResponse:
     )
 
 
-@router.get("/runs/{run_id}")
-async def get_run(run_id: str, db: DatabaseManager = Depends(get_db)) -> Dict[str, Any]:
+def _event_dict(e: RunEvent) -> Dict[str, Any]:
+    return {
+        "seq": e.seq,
+        "level": e.level,
+        "event": e.event,
+        "message": e.message,
+        "step": e.step,
+        "duration_ms": e.duration_ms,
+        "tokens": e.tokens,
+        "score": e.score,
+        "ts": e.ts.isoformat() if e.ts else None,
+    }
+
+
+def _load_run_and_events(db: DatabaseManager, run_id: str) -> tuple[Run, List[Dict[str, Any]]]:
     with db.get_session() as s:
         run = s.get(Run, run_id)
         if not run:
             raise HTTPException(status_code=404, detail="Run not found")
-        events: List[RunEvent] = (
+        events = (
             s.query(RunEvent).filter(RunEvent.run_id == run_id).order_by(RunEvent.seq).all()
         )
-    return {
-        "run": _run_dict(run),
-        "events": [
-            {
-                "seq": e.seq,
-                "level": e.level,
-                "event": e.event,
-                "message": e.message,
-                "step": e.step,
-                "duration_ms": e.duration_ms,
-                "tokens": e.tokens,
-                "score": e.score,
-                "ts": e.ts.isoformat() if e.ts else None,
-            }
-            for e in events
-        ],
-    }
+        return run, [_event_dict(e) for e in events]
+
+
+@router.get("/runs/{run_id}")
+async def get_run(run_id: str, db: DatabaseManager = Depends(get_db)) -> Dict[str, Any]:
+    run, events = _load_run_and_events(db, run_id)
+    return {"run": _run_dict(run), "events": events}
+
+
+@router.get("/runs/{run_id}/todo")
+async def get_run_todo(run_id: str, db: DatabaseManager = Depends(get_db)) -> Dict[str, Any]:
+    """A checklist view of the run, derived from its event stream.
+
+    Distinct from the step-by-step log above: this collapses the same events
+    into done/in-progress/failed/pending tasks rather than a scrolling trace.
+    """
+    run, events = _load_run_and_events(db, run_id)
+    run_dict = _run_dict(run)
+    return {"run": run_dict, "todo": derive_todo(run_dict, events)}
 
 
 @router.delete("/runs")

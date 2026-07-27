@@ -32,6 +32,7 @@ from src.db.research_models import (
 from src.db.schema import DatabaseManager, FeatureBacklog, Project
 from src.llm.ollama_client import get_ollama_client
 from src.observability.tracer import Tracer
+from src.security import content_safety
 from src.services import research_prompts as P
 from src.services import research_search as S
 
@@ -165,18 +166,34 @@ def _section(markdown: str, heading: str) -> str:
     return m.group(1).strip() if m else ""
 
 
-def _evidence_block(outcomes: List[S.SearchOutcome]) -> Tuple[str, List[S.SearchResult]]:
-    """Render search hits for the prompt, and return them for source records."""
+def _evidence_block(
+    outcomes: List[S.SearchOutcome],
+) -> Tuple[str, List[S.SearchResult], set]:
+    """Render search hits for the prompt, and return them for source records.
+
+    A fetched page is data a stranger wrote, not an instruction the user gave
+    (OW row 54) — the same reasoning that already gates third-party persona
+    manifests before install. A hit whose title or snippet contains an
+    injection-style phrase is not dropped (that would delete real information
+    a user asked to be researched) but is wrapped so the model reads it as
+    quoted untrusted data, and its URL is returned so the persisted source can
+    carry the same flag rather than looking identical to a clean one.
+    """
     hits: List[S.SearchResult] = []
     for o in outcomes:
         hits.extend(o.results)
     if not hits:
-        return "", []
-    parts = [
-        f'<result index="{i + 1}" url="{h.url}">\n{h.title}\n{h.snippet}\n</result>'
-        for i, h in enumerate(hits)
-    ]
-    return "\n".join(parts), hits
+        return "", [], set()
+
+    flagged_urls: set = set()
+    parts: List[str] = []
+    for i, h in enumerate(hits):
+        body = f"{h.title}\n{h.snippet}"
+        if content_safety.scan(body):
+            flagged_urls.add(h.url)
+            body = content_safety.quote_untrusted(body, source_label=h.url or "a fetched page")
+        parts.append(f'<result index="{i + 1}" url="{h.url}">\n{body}\n</result>')
+    return "\n".join(parts), hits, flagged_urls
 
 
 # ---------------------------------------------------------------------------
@@ -339,6 +356,7 @@ async def _run_track(db: DatabaseManager, client, brief_id: str, topic: str,
 
     learnings: List[str] = []
     all_hits: List[S.SearchResult] = []
+    all_flagged: set = set()
     search_note: Optional[str] = None
     queries: List[str] = []
 
@@ -355,8 +373,9 @@ async def _run_track(db: DatabaseManager, client, brief_id: str, topic: str,
         for o in outcomes:
             if o.error and not search_note:
                 search_note = o.error
-        evidence, hits = _evidence_block(outcomes)
+        evidence, hits, flagged = _evidence_block(outcomes)
         all_hits.extend(hits)
+        all_flagged.update(flagged)
         grounded = bool(hits)
 
         raw = await _ask(client,
@@ -400,9 +419,12 @@ async def _run_track(db: DatabaseManager, client, brief_id: str, topic: str,
             if h.url in seen:
                 continue
             seen.add(h.url)
+            # Same [prefix] convention as _flag_unverified above — a flagged
+            # source stays visible rather than looking identical to a clean one.
+            title = f"[flagged] {h.title}" if h.url in all_flagged else h.title
             s.add(ResearchSource(id=str(uuid.uuid4()), brief_id=brief_id,
                                  track_kind=kind, kind="web",
-                                 title=h.title[:300], url=h.url[:1000],
+                                 title=title[:300], url=h.url[:1000],
                                  snippet=h.snippet[:1000]))
         if not all_hits:
             s.add(ResearchSource(id=str(uuid.uuid4()), brief_id=brief_id,
