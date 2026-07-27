@@ -339,6 +339,10 @@ app.include_router(quality_router)
 from src.api.platform_routes import router as platform_router
 app.include_router(platform_router)
 
+# Include integration routes (outbound webhooks, API keys, recipes)
+from src.api.integration_routes import router as integration_router
+app.include_router(integration_router)
+
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])
