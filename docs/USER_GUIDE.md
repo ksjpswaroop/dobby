@@ -24,8 +24,12 @@ you are trying to do, not by menu structure.
 10. [Automations & the Inbox](#automations--the-inbox)
 11. [Models & performance](#models--performance)
 12. [Keyboard shortcuts](#keyboard-shortcuts)
-13. [Settings reference](#settings-reference)
-14. [Troubleshooting](#troubleshooting)
+13. [Planning your work](#planning-your-work)
+14. [Quality & trust](#quality--trust)
+15. [Habits & momentum](#habits--momentum)
+16. [Automating & integrating](#automating--integrating)
+17. [Settings reference](#settings-reference)
+18. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -476,6 +480,215 @@ model a literal `{{contxt}}`.
 
 ---
 
+## Planning your work
+
+### The board — `/board`
+
+Your Pareto-scored backlog as Backlog / Todo / In Progress / **Blocked** / Done.
+
+**Blocked is computed, not chosen.** You cannot drag something into Blocked —
+an item is blocked when it has an unfinished blocker, full stop. Add a blocker
+and it moves itself; finish the blocker and it moves back. That way the board
+can never disagree with the dependencies behind it.
+
+Column moves are buttons rather than drag targets, so the board works from the
+keyboard.
+
+### Estimates, sprints, milestones
+
+Every item gets an estimate **seeded from its effort score**, so nothing starts
+unestimated. Refine it in points or hours.
+
+Sprints carry a capacity and show committed vs completed. Activating a sprint
+closes any other active one — two active sprints makes "the current sprint"
+ambiguous everywhere it's used.
+
+### Dependencies
+
+Mark an item blocked by another. Circular dependencies are refused when you
+create them, not discovered later. The roadmap timeline lays undated work out
+by dependency *depth*, so something blocked behind two levels sits two lanes
+to the right.
+
+### Your day and your week
+
+- **Daily plan** proposes the highest-value *ready* work that fits your
+  capacity — blocked items are excluded automatically.
+- **Weekly review** shows what you completed, what carried over and for how
+  long, anything blocked 7+ days, and a suggested capacity taken from your
+  real four-week throughput rather than a guess.
+
+### Work breakdown
+
+Ask for a breakdown of any large item. The model proposes subtasks; on
+**accept** they become real backlog features with real dependency edges, so
+they appear in the same board and analytics as everything else — not a
+parallel to-do list you'll forget.
+
+### OKRs
+
+Objectives with key results that backlog items link to. Progress is
+**impact-weighted**: finishing a high-impact feature moves a key result far
+more than finishing a trivial one.
+
+### Delivery analytics
+
+Velocity, throughput, cycle time, and cumulative flow — all computed from the
+record of every column move. Cycle time counts an item's **first** completion,
+so reopening something and finishing it again can't inflate a month-old number.
+
+---
+
+## Quality & trust
+
+### Verification report
+
+Every document's verifier output grouped into seven dimensions — structure,
+format, consistency, cross-reference, completeness, statistical, quality —
+each with its own verdict, so a clean dimension is visibly clean.
+
+### Your own rules
+
+Add project rules alongside the built-in checks: a required section, a
+forbidden phrase, minimum or maximum words, a required phrase, or a regex that
+must *not* appear. Rules are declarative — Dobby never runs code you type
+into a rules box.
+
+### Citation checking
+
+Flags sentences that read like factual claims — percentages, superlatives,
+absolutes, money figures, "studies show" — that offer nowhere to verify them.
+
+It's asking *"does this have a source?"*, never *"is this true?"*. It can't
+know the latter.
+
+### Auto-fix
+
+Deterministic clean-ups: strip TODO lines, collapse blank-line runs, add blank
+lines after headings, trim trailing whitespace, normalise bullet markers. Each
+shows you a before/after **preview** first, and each is applied through the
+normal save path so it's snapshotted and undoable.
+
+### Trash — nothing is deleted
+
+Deleting an idea, feature, or document sends it to the trash. A document goes
+**with** its versions, comments, and tags, so restoring brings back the whole
+thing rather than an empty shell. Emptying the trash is the only genuinely
+destructive action in Dobby, and only you can trigger it.
+
+### Backup
+
+Export a complete project — documents, versions, comments, tags, backlog,
+planning state, dependencies, ideas, graph edges — to one versioned file.
+
+Importing **always creates a new project** with fresh IDs. It never overwrites,
+because reusing an archive's IDs could silently clobber work on this machine
+that happens to share one.
+
+### Consistency checker
+
+A project-wide pass for placeholder text, stub documents, `[[wiki links]]`
+pointing nowhere, duplicate titles, and completed features no document
+mentions. Deterministic, so every finding is literally true.
+
+### Batch operations
+
+Tag, verify, set status, move, export, or delete across many items at once.
+Each item reports its own outcome, so a partial failure is visible instead of
+the whole job just saying "failed".
+
+---
+
+## Habits & momentum
+
+### Achievements
+
+Nine badges — first capture, first document, a full seven-artifact set, ten
+triaged, ten closed, 7- and 30-day streaks, 25 documents, 5 research briefs.
+
+Every badge is a **query over real state**, so it can't drift from what it
+celebrates, and unearned ones show genuine progress.
+
+### On this day
+
+Resurfaces documents and ideas on their weekly or monthly anniversary.
+Anything under a week old isn't a memory yet.
+
+### Focus mode
+
+A configurable Pomodoro timer for deep document work.
+
+### Share card
+
+A card celebrating your streak, generated locally as **SVG** — no image
+library needed, and you can read exactly what it says before it leaves your
+machine.
+
+### Notifications you can live with
+
+Every nudge — reminders, recaps, achievements, resurfacing — passes one gate
+with **quiet hours** (correctly handling windows that cross midnight),
+**per-category mute**, and a **once-per-day cap** per category. Turn the whole
+thing off in Settings.
+
+---
+
+## Automating & integrating
+
+### Outbound webhooks
+
+POST events to any endpoint: idea captured or triaged, document created or
+approved, feature completed, run failed or completed, research finished.
+
+**Sending to a remote host needs your approval.** Registering a webhook
+pointed anywhere other than localhost raises a high-risk ask in your Inbox
+naming the exact host, because anything that can create a webhook could also
+send your documents somewhere. Loopback targets skip the gate — they never
+leave the machine.
+
+Every delivery is **HMAC-SHA256 signed** with a per-webhook secret (shown once
+at creation) so your receiver can verify it really came from your Dobby. Check
+the `X-Dobby-Signature` header. Every attempt is logged, successes and
+failures both; after 10 consecutive failures a webhook is disabled but kept
+visible so you can see why.
+
+### API keys
+
+Mint scoped keys — `read`, `write`, `admin` — for scripts and integrations.
+
+**The key is shown exactly once.** Only a hash is stored, so nobody can recover
+it later, including you. Keys are revocable and track their own use count.
+
+### Recipes
+
+When-this-then-that automation: *when an idea is captured containing "bug",
+tag it* — with `contains`, `not_contains`, and `field_equals` conditions and
+webhook / tag / create-idea / set-status / notify actions. A recipe whose
+action fails records the failure rather than stopping the others.
+
+### In-app help
+
+Ask a question about Dobby itself and get an answer grounded in this
+documentation, with the exact sections cited. It works even with no model
+running — the retrieved sections are the answer, just unsummarised.
+
+### Guided goals
+
+Three tracks — ship an MVP spec set, build the daily habit, plan and run a
+sprint — that tick themselves off from real data and always show the next step.
+
+### Start Your Day
+
+One guided flow pulling together your streak, what's waiting, the single most
+valuable next action, today's plan, an anniversary, and a recommendation.
+
+### Other languages
+
+Generate the seven documents in any of 13 languages. Code identifiers, file
+paths, and proper nouns are left untranslated.
+
+---
+
 ## Settings reference
 
 Open `/settings`.
@@ -492,6 +705,11 @@ Open `/settings`.
 | Workspace root | Which directory the terminal may work in |
 | Extra providers | OpenAI-compatible base URL (covers LM Studio, llama.cpp, vLLM, OpenRouter) and Anthropic |
 | Inbox mirroring | Send new approvals to Slack or Telegram |
+| Output language | Which language generated documents are written in |
+| Notifications | Master switch, quiet hours, per-category mute |
+| Focus / break | Pomodoro interval lengths |
+| Accent, density, font scale | Personalisation beyond light/dark |
+| Custom rules | Your own per-project verification rules |
 | License | Activate, check status, re-verify, deactivate |
 
 ---
