@@ -124,7 +124,7 @@ export default function Copilot() {
       <div className="grid gap-4 lg:grid-cols-[240px_1fr]">
         {/* Threads */}
         <Card className="overflow-hidden">
-          <div className="border-b border-line px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+          <div className="eyebrow border-b border-line px-4 py-2.5">
             Chats
           </div>
           {threads.length === 0 ? (
@@ -191,7 +191,7 @@ export default function Copilot() {
 
                     {m.role === 'assistant' && m.citations.length > 0 && (
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <span className="text-[10px] uppercase tracking-wider text-ink-muted">
+                        <span className="eyebrow text-[10px]">
                           Sources
                         </span>
                         {m.citations.map((c) => (

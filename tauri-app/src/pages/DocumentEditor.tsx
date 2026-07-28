@@ -307,7 +307,7 @@ export default function DocumentEditor() {
 
         {preview && (
           <div className="border-t border-line px-4 py-3">
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+            <p className="eyebrow mb-1.5">
               Preview · {preview.original_words} → {preview.refined_words} words
             </p>
             <p className="whitespace-pre-wrap rounded-xl bg-surface2 p-3 text-[13px] text-ink">
@@ -326,7 +326,7 @@ export default function DocumentEditor() {
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Editor */}
         <Card className="overflow-hidden">
-          <div className="border-b border-line px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+          <div className="eyebrow border-b border-line px-4 py-2">
             Markdown
           </div>
           <textarea
@@ -367,7 +367,7 @@ export default function DocumentEditor() {
                 />
                 {doc.sections.length > 1 && (
                   <div className="mt-5 border-t border-line pt-3">
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+                    <p className="eyebrow mb-2">
                       Regenerate a section
                     </p>
                     <ul className="space-y-1">
@@ -514,7 +514,7 @@ export default function DocumentEditor() {
             {panel === 'links' && (
               !linkMap ? <Spinner size={16} /> : (
                 <>
-                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+                  <p className="eyebrow mb-1.5">
                     Links out
                   </p>
                   {linkMap.outgoing.length === 0 ? (
@@ -539,7 +539,7 @@ export default function DocumentEditor() {
                       ))}
                     </ul>
                   )}
-                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+                  <p className="eyebrow mb-1.5">
                     Backlinks
                   </p>
                   {linkMap.backlinks.length === 0 ? (

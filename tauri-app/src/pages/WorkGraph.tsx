@@ -229,7 +229,7 @@ export default function WorkGraphPage() {
 
               {detail.insight && (
                 <div className="mt-4 rounded-xl border border-line bg-surface2 p-3">
-                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                  <p className="eyebrow mb-1">
                     Insight
                   </p>
                   <p className="text-[12px] text-ink">{detail.insight}</p>
@@ -241,7 +241,7 @@ export default function WorkGraphPage() {
 
               {(detail.connected_to.length > 0 || detail.connected_from.length > 0) && (
                 <div className="mt-4">
-                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                  <p className="eyebrow mb-1.5">
                     Connected to
                   </p>
                   <ul className="space-y-1">
@@ -262,7 +262,7 @@ export default function WorkGraphPage() {
 
               {detail.next_action && (
                 <div className="mt-5">
-                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                  <p className="eyebrow mb-1.5">
                     Next best action
                   </p>
                   <p className="mb-2 text-[12px] text-ink-muted">{detail.next_action.reason}</p>

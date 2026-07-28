@@ -56,7 +56,7 @@ export default function CommandCenter() {
       <div className="space-y-5">
         {groups.map(([group, cmds]) => (
           <div key={group}>
-            <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+            <h2 className="eyebrow mb-2">
               {group} <span className="font-normal normal-case">· {cmds.length}</span>
             </h2>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

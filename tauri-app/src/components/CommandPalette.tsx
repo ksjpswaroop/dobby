@@ -185,7 +185,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
               return (
                 <div key={c.id}>
                   {header && (
-                    <div className="px-2.5 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                    <div className="eyebrow px-2.5 pb-1 pt-2">
                       {header}
                     </div>
                   )}
@@ -212,7 +212,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             return (
               <div key={`${r.type}-${r.id}`}>
                 {first && (
-                  <div className="px-2.5 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                  <div className="eyebrow px-2.5 pb-1 pt-2">
                     In your work
                   </div>
                 )}

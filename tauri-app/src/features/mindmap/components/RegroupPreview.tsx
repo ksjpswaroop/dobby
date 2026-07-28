@@ -60,7 +60,7 @@ export function RegroupPreview() {
         </div>
 
         <div>
-          <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+          <div className="eyebrow mb-1">
             {proposed.title}
           </div>
           <div className="max-h-[40vh] overflow-y-auto rounded-xl border border-line p-3">

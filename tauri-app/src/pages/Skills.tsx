@@ -87,7 +87,7 @@ export default function Skills() {
       <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
         {/* Skill list */}
         <Card className="overflow-hidden">
-          <div className="border-b border-line px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+          <div className="eyebrow border-b border-line px-4 py-2.5">
             Skills
           </div>
           <ul className="max-h-[64vh] overflow-y-auto p-1.5">
@@ -144,7 +144,7 @@ export default function Skills() {
 
                 <dl className="mt-4 grid gap-3 sm:grid-cols-2">
                   <div>
-                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                    <dt className="eyebrow text-[10px]">
                       1 · Intent
                     </dt>
                     <dd className="mt-0.5 text-[12px] text-ink">{selected.goal || '—'}</dd>
@@ -153,7 +153,7 @@ export default function Skills() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                    <dt className="eyebrow text-[10px]">
                       2 · Sources
                     </dt>
                     <dd className="mt-0.5 text-[12px] text-ink">
@@ -161,7 +161,7 @@ export default function Skills() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                    <dt className="eyebrow text-[10px]">
                       3 · Guardrails
                     </dt>
                     <dd className="mt-0.5 text-[12px] text-ink">
@@ -174,7 +174,7 @@ export default function Skills() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                    <dt className="eyebrow text-[10px]">
                       4 · Review
                     </dt>
                     <dd className="mt-0.5 text-[12px] text-ink">
@@ -193,7 +193,7 @@ export default function Skills() {
             {/* Permissions — rendered from config, so it cannot overstate */}
             <Card>
               <CardBody>
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+                <p className="eyebrow mb-2">
                   Permissions
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2">

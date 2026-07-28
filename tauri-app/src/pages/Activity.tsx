@@ -98,7 +98,7 @@ export default function Activity() {
             return (
               <div key={e.id}>
                 {header && (
-                  <div className="mb-1.5 mt-1 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+                  <div className="eyebrow mb-1.5 mt-1">
                     {header}
                   </div>
                 )}
