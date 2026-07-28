@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { copilotApi, type Usage } from '../features/copilot/api';
-import { Badge, Card, CardBody, EmptyState, PageHeader, Spinner } from '../components/ui';
+import { Badge, Card, CardBody, CardHeader, EmptyState, PageHeader, Spinner } from '../components/ui';
 import { IconCpu } from '../lib/icons';
 import { useProject } from '../lib/project';
 
@@ -90,7 +90,7 @@ export default function ModelUsage() {
 
       {/* Daily activity */}
       <Card className="mb-4">
-        <div className="border-b border-line px-5 py-3 text-sm font-semibold">Calls per day</div>
+        <CardHeader title="Calls per day" />
         <CardBody>
           <div className="flex h-[60px] items-end gap-[2px]">
             {data.by_day.map((d) => (
@@ -109,7 +109,7 @@ export default function ModelUsage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <div className="border-b border-line px-5 py-3 text-sm font-semibold">By model</div>
+          <CardHeader title="By model" />
           <ul className="divide-y divide-line">
             {data.by_model.map((m) => (
               <li key={m.model} className="flex items-center gap-3 px-5 py-2.5">
@@ -123,7 +123,7 @@ export default function ModelUsage() {
         </Card>
 
         <Card>
-          <div className="border-b border-line px-5 py-3 text-sm font-semibold">By task</div>
+          <CardHeader title="By task" />
           <ul className="divide-y divide-line">
             {data.by_task.map((t) => (
               <li key={t.task_type} className="flex items-center gap-3 px-5 py-2.5">

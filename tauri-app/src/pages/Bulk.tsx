@@ -1,7 +1,7 @@
 import { pluralize } from '../lib/plural';
 import { useState } from 'react';
 import api, { BulkResponse } from '../api/client';
-import { Card, Button, PageHeader, Spinner, ErrorState } from '../components/ui';
+import { Button, Card, CardHeader, ErrorState, PageHeader, Spinner } from '../components/ui';
 import { cn } from '../lib/cn';
 import { IconBolt } from '../lib/icons';
 import { useToast } from '../lib/toast';
@@ -174,12 +174,12 @@ export default function Bulk() {
           </div>
 
           <Card className="overflow-hidden">
-            <div className="border-b border-line px-5 py-3 text-sm font-semibold">
-              Coverage matrix
-              <span className="ml-2 font-normal text-ink-muted">
+            <CardHeader>
+              <span className="text-sm font-semibold text-ink">Coverage matrix</span>
+              <span className="text-[12px] font-normal text-ink-muted">
                 (number = verification score; — = missing)
               </span>
-            </div>
+            </CardHeader>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>

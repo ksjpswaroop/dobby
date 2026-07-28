@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authedFetch } from '../lib/auth';
-import { Card, Spinner } from './ui';
+import { Card, CardHeader, Spinner } from './ui';
 import { IconCheck, IconChevronRight, IconSparkles } from '../lib/icons';
 import { useProject } from '../lib/project';
 
@@ -54,19 +54,23 @@ export function Onboarding() {
 
   return (
     <Card className="overflow-hidden">
-      <div className="flex items-center gap-2 border-b border-line px-5 py-3.5 text-sm font-semibold">
-        <IconSparkles size={16} className="text-accent" />
-        Get started
-        <span className="ml-auto text-[11px] font-normal text-ink-muted">
-          {data.done_count} of {data.total}
-        </span>
-        <button
-          onClick={dismiss}
-          className="rounded px-1.5 text-[11px] font-normal text-ink-muted hover:text-ink"
-        >
-          Dismiss
-        </button>
-      </div>
+      <CardHeader
+        icon={<IconSparkles size={16} className="text-accent" />}
+        title="Get started"
+        actions={
+          <>
+            <span className="text-[11px] font-normal text-ink-muted">
+              {data.done_count} of {data.total}
+            </span>
+            <button
+              onClick={dismiss}
+              className="rounded px-1.5 text-[11px] font-normal text-ink-muted hover:text-ink"
+            >
+              Dismiss
+            </button>
+          </>
+        }
+      />
       <ul>
         {data.steps.map((s) => (
           <li key={s.id}>

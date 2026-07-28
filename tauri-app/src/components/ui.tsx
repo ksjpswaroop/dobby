@@ -27,6 +27,50 @@ export function CardBody({
   return <div className={cn('p-5', className)}>{children}</div>;
 }
 
+/**
+ * The titled strip at the top of a card.
+ *
+ * This existed twenty times, written by hand, in eight different combinations
+ * of padding and type size — so two cards side by side had their titles on
+ * different baselines. One implementation means they line up.
+ *
+ * `actions` sits at the trailing edge for the card's own controls (a refresh,
+ * a count, a filter).
+ */
+export function CardHeader({
+  title,
+  icon,
+  actions,
+  className,
+  children,
+}: {
+  title?: ReactNode;
+  icon?: ReactNode;
+  actions?: ReactNode;
+  className?: string;
+  /** Anything richer than a title — rendered in the title's place. */
+  children?: ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-2 border-b border-line px-5 py-3.5',
+        className,
+      )}
+    >
+      {icon && <span className="shrink-0 text-ink-muted">{icon}</span>}
+      {children ?? (
+        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
+          {title}
+        </span>
+      )}
+      {actions && (
+        <span className="ml-auto flex shrink-0 items-center gap-2">{actions}</span>
+      )}
+    </div>
+  );
+}
+
 /* -------------------------------------------------------------------------- */
 /* Button                                                                      */
 /* -------------------------------------------------------------------------- */

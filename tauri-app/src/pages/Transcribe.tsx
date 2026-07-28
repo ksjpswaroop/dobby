@@ -2,9 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   transcriptionApi, type Capabilities, type TranscriptResult,
 } from '../features/transcription/api';
-import {
-  Badge, Button, Card, CardBody, EmptyState, PageHeader, Spinner,
-} from '../components/ui';
+import { Badge, Button, Card, CardBody, CardHeader, EmptyState, PageHeader, Spinner } from '../components/ui';
 import { IconAudio, IconDownload, IconAlert } from '../lib/icons';
 import { useProject } from '../lib/project';
 import { useToast } from '../lib/toast';
@@ -152,7 +150,7 @@ export default function Transcribe() {
 
         {/* Transcript */}
         <Card className="overflow-hidden">
-          <div className="border-b border-line px-5 py-3">
+          <CardHeader className="py-3">
             <input
               ref={fileRef}
               type="file"
@@ -170,9 +168,9 @@ export default function Transcribe() {
               {transcribing ? 'Transcribing…' : 'Choose an audio file'}
             </Button>
             {fileName && !transcribing && (
-              <span className="ml-2 text-[12px] text-ink-muted">{fileName}</span>
+              <span className="text-[12px] text-ink-muted">{fileName}</span>
             )}
-          </div>
+          </CardHeader>
 
           {!result ? (
             <EmptyState

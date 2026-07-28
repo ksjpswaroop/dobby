@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { homeApi, type HomeData, type HomeItem } from '../features/home/api';
-import { Badge, Card, Spinner } from './ui';
+import { Badge, Card, CardHeader, Spinner } from './ui';
 import {
   IconControl, IconBulb, IconLogs, IconAlert, IconBacklog, IconCheck, IconChevronRight,
 } from '../lib/icons';
@@ -50,12 +50,15 @@ export function TodayHome() {
 
   return (
     <div className="space-y-4">
+      {/* No greeting here: the Daily Alignment hero at the top of the page
+          already says "Good evening, <name>", and saying it twice on one
+          screen makes the page read as two pages stitched together. */}
       <div>
-        <h2 className="text-lg font-semibold tracking-tight text-ink">{data.greeting}</h2>
-        <p className="mt-0.5 text-sm text-ink-muted">
+        <p className="eyebrow">Waiting on you</p>
+        <p className="mt-1.5 text-[13px] text-ink-muted">
           {data.clear
             ? 'Nothing is waiting on you — a clean slate.'
-            : "Here's today's actionable slice."}
+            : "Everything that needs a decision or a triage, in one place."}
         </p>
       </div>
 
@@ -70,11 +73,12 @@ export function TodayHome() {
         <div className="grid gap-4 md:grid-cols-2">
           {active.map((s) => (
             <Card key={s.key} className="overflow-hidden">
-              <div className="flex items-center gap-2 border-b border-line px-4 py-3 text-[13px] font-semibold">
-                <s.icon size={15} className="text-ink-muted" />
-                {s.label}
-                <Badge tone={s.tone} className="ml-auto">{data[s.key].length}</Badge>
-              </div>
+              <CardHeader
+                className="px-4 py-3"
+                icon={<s.icon size={15} />}
+                title={s.label}
+                actions={<Badge tone={s.tone}>{data[s.key].length}</Badge>}
+              />
               <ul>
                 {data[s.key].map((item: HomeItem) => (
                   <li key={item.id}>

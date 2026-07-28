@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api, { DashboardData } from '../api/client';
-import { Card, LoadingState, ErrorState, Badge, Button } from '../components/ui';
+import { Badge, Button, Card, CardHeader, ErrorState, LoadingState } from '../components/ui';
 import { PinnedStrip } from '../components/PinnedStrip';
 import { TodayHome } from '../components/TodayHome';
 import { DailyAlignment } from '../components/DailyAlignment';
@@ -139,14 +139,23 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Priority feature */}
+      {/* Highest-scoring feature.
+          Not called "today's priority" any more: the hero already answers that
+          with the next-best-action, and the plan answers it again with a
+          schedule. Three different answers to the same question on one page
+          made the page argue with itself. This one ranks by Pareto score
+          alone, so it says that, and stays useful as a shortcut into the
+          generators. */}
       <Card className="overflow-hidden">
-        <div className="border-b border-line px-5 py-4">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <IconSparkles size={16} className="text-accent" />
-            Today's priority
-          </div>
-        </div>
+        <CardHeader
+          icon={<IconSparkles size={16} className="text-accent" />}
+          title="Highest Pareto score"
+          actions={
+            <span className="text-[11px] font-normal text-ink-muted">
+              impact vs. effort and risk
+            </span>
+          }
+        />
         <div className="p-5">
           {data?.today_feature ? (
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -196,9 +205,9 @@ export default function Dashboard() {
 
       {/* Recent */}
       {data?.recent_features && data.recent_features.length > 0 && (
-        <Card className="p-5">
-          <h2 className="mb-3 text-sm font-semibold">Recently completed</h2>
-          <div className="divide-y divide-line">
+        <Card className="overflow-hidden">
+          <CardHeader title="Recently completed" />
+          <div className="divide-y divide-line px-5">
             {data.recent_features.map((f) => (
               <div key={f.id} className="flex items-center justify-between py-2.5">
                 <span className="text-sm">{f.title}</span>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { pinsApi, type Pin } from '../features/pins/api';
-import { Card } from './ui';
+import { Card, CardHeader } from './ui';
 import { IconPin, IconBulb, IconBacklog, IconDoc } from '../lib/icons';
 import { useProject } from '../lib/project';
 
@@ -50,10 +50,7 @@ export function PinnedStrip() {
 
   return (
     <Card className="overflow-hidden">
-      <div className="flex items-center gap-2 border-b border-line px-5 py-4 text-sm font-semibold">
-        <IconPin size={16} className="text-brand" />
-        Pinned
-      </div>
+      <CardHeader icon={<IconPin size={16} className="text-brand" />} title="Pinned" />
       <div className="flex flex-wrap gap-2 p-4">
         {pins.map((p, i) => {
           const Icon = TYPE_ICON[p.entity_type];
