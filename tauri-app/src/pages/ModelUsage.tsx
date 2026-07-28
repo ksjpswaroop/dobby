@@ -92,13 +92,15 @@ export default function ModelUsage() {
       <Card className="mb-4">
         <div className="border-b border-line px-5 py-3 text-sm font-semibold">Calls per day</div>
         <CardBody>
-          <div className="flex items-end gap-1">
+          <div className="flex h-[60px] items-end gap-[2px]">
             {data.by_day.map((d) => (
               <div
                 key={d.date}
                 title={`${d.date} — ${d.calls} calls, ${d.tokens} tokens`}
-                style={{ height: `${Math.max(4, (d.calls / peak) * 60)}px` }}
-                className="flex-1 rounded-sm bg-brand"
+                style={{ height: `${d.calls ? Math.max(4, (d.calls / peak) * 60) : 2}px` }}
+                className={`min-w-px flex-1 rounded-sm ${
+                  d.calls ? 'bg-brand' : 'bg-line'
+                }`}
               />
             ))}
           </div>

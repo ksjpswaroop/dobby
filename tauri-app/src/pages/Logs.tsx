@@ -1,3 +1,5 @@
+import { pluralize } from '../lib/plural';
+import { parseUTC } from '../lib/tz';
 import { useEffect, useMemo, useState } from 'react';
 import api, { RunInfo, RunEventItem, TodoItem } from '../api/client';
 import { Card, Button, PageHeader, Badge, LoadingState, ErrorState, EmptyState } from '../components/ui';
@@ -16,7 +18,7 @@ function fmtDuration(ms: number | null): string {
 
 function fmtTime(ts: string | null): string {
   if (!ts) return '';
-  const d = new Date(ts.endsWith('Z') ? ts : ts + 'Z');
+  const d = parseUTC(ts);
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
@@ -96,7 +98,7 @@ export default function Logs() {
   const clear = async () => {
     try {
       const { deleted } = await api.clearRuns(projectId);
-      toast(`Cleared ${deleted} run${deleted === 1 ? '' : 's'}`, 'success');
+      toast(`Cleared ${pluralize(deleted, 'run')}`, 'success');
       setSelectedId(null);
       load();
     } catch {

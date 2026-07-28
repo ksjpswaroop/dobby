@@ -1,3 +1,4 @@
+import { pluralize } from '../lib/plural';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/cn';
@@ -243,7 +244,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         <div className="flex items-center gap-3 border-t border-line px-4 py-2 text-[11px] text-ink-muted">
           <span>↑↓ navigate</span>
           <span>↵ run</span>
-          <span className="ml-auto">{rows.length} result{rows.length === 1 ? '' : 's'}</span>
+          <span className="ml-auto">{pluralize(rows.length, 'result')}</span>
         </div>
       </div>
     </div>

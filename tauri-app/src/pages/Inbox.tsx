@@ -1,3 +1,5 @@
+import { pluralize } from '../lib/plural';
+import { parseUTC } from '../lib/tz';
 import { useCallback, useEffect, useState } from 'react';
 import { inboxApi, type Ask, type Grant } from '../features/inbox/api';
 import {
@@ -25,7 +27,7 @@ const STATE_TONE: Record<string, 'success' | 'danger' | 'warning' | 'neutral'> =
 
 function ago(iso: string | null): string {
   if (!iso) return '';
-  const d = new Date(iso.endsWith('Z') ? iso : `${iso}Z`);
+  const d = parseUTC(iso);
   const mins = Math.round((Date.now() - d.getTime()) / 60000);
   if (mins < 1) return 'just now';
   if (mins < 60) return `${mins} min ago`;
@@ -274,7 +276,7 @@ export default function Inbox() {
                       <span className="truncate text-ink">{g.target || '(no target)'}</span>
                     </div>
                     <div className="mt-0.5 text-[11px] text-ink-muted">
-                      used {g.use_count} time{g.use_count === 1 ? '' : 's'}
+                      used {pluralize(g.use_count, 'time')}
                       {g.last_used_at && ` · last ${ago(g.last_used_at)}`}
                       {g.expires_at ? ' · expires' : ' · until revoked'}
                     </div>

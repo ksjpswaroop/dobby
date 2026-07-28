@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional
 
 from src.db.copilot_models import TASK_TYPES, ModelCall
 from src.db.schema import DatabaseManager
+from src.services import localday
 
 CHARS_PER_TOKEN = 4
 
@@ -61,9 +62,21 @@ def _cost(seconds: float, watts: float, rate: float) -> float:
     return (watts * seconds / 3600.0 / 1000.0) * rate
 
 
+def _fill_days(by_day: Dict[str, Dict[str, Any]], days: int,
+               tz_offset_minutes: Optional[int]) -> List[Dict[str, Any]]:
+    """Every day in the window, so a gap reads as a gap."""
+    today = localday.today_local(tz_offset_minutes)
+    out: List[Dict[str, Any]] = []
+    for i in range(days - 1, -1, -1):
+        d = (today - timedelta(days=i)).isoformat()
+        out.append(by_day.get(d, {"date": d, "calls": 0, "tokens": 0, "total_ms": 0}))
+    return out
+
+
 def usage(db: DatabaseManager, project_id: Optional[str] = None, days: int = 30,
           watts: float = DEFAULT_WATTS,
-          rate_per_kwh: float = DEFAULT_RATE_PER_KWH) -> Dict[str, Any]:
+          rate_per_kwh: float = DEFAULT_RATE_PER_KWH,
+          tz_offset_minutes: Optional[int] = None) -> Dict[str, Any]:
     """Aggregate usage for the dashboard: totals, per-model, per-task, daily."""
     since = datetime.utcnow() - timedelta(days=days)
     with db.get_session() as s:
@@ -96,7 +109,9 @@ def usage(db: DatabaseManager, project_id: Optional[str] = None, days: int = 30,
         t["tokens"] += tokens
         t["total_ms"] += c.latency_ms or 0
 
-        day = (c.created_at or datetime.utcnow()).date().isoformat()
+        day_date = localday.local_day(c.created_at or datetime.utcnow(),
+                                      tz_offset_minutes)
+        day = (day_date or localday.today_local(tz_offset_minutes)).isoformat()
         d = by_day.setdefault(day, {"date": day, "calls": 0, "tokens": 0, "total_ms": 0})
         d["calls"] += 1
         d["tokens"] += tokens
@@ -122,7 +137,10 @@ def usage(db: DatabaseManager, project_id: Optional[str] = None, days: int = 30,
         "tokens_are_estimated": True,
         "by_model": sorted(by_model.values(), key=lambda x: -x["calls"]),
         "by_task": sorted(by_task.values(), key=lambda x: -x["calls"]),
-        "by_day": sorted(by_day.values(), key=lambda x: x["date"]),
+        # Zero-filled across the whole window. Returning only the days that
+        # happened made a single active day render as one bar spanning the
+        # chart — reading as constant use rather than one busy afternoon.
+        "by_day": _fill_days(by_day, days, tz_offset_minutes),
     }
 
 

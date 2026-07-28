@@ -1,3 +1,4 @@
+import { pluralize } from '../lib/plural';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -155,7 +156,7 @@ export default function WorkGraphPage() {
               <span key={type} className="flex items-center gap-1">
                 <span className="inline-block h-2 w-2 rounded-full"
                       style={{ background: TYPE_STYLE[type]?.border }} />
-                {n} {type}{n === 1 ? '' : 's'}
+                {pluralize(n, type)}
               </span>
             ))}
           </div>

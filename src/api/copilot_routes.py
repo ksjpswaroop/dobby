@@ -232,6 +232,7 @@ async def set_routing(req: RouteSet):
 # --- Usage dashboard (D30) ---------------------------------------------------
 @router.get("/usage")
 async def usage(project_id: Optional[str] = None, days: int = 30,
+                tz_offset_minutes: Optional[int] = None,
                 db: DatabaseManager = Depends(get_db)):
     from src.settings import get_settings
 
@@ -240,6 +241,7 @@ async def usage(project_id: Optional[str] = None, days: int = 30,
         db, project_id, days,
         watts=getattr(settings, "power_watts", 60.0),
         rate_per_kwh=getattr(settings, "electricity_rate_per_kwh", 0.15),
+        tz_offset_minutes=tz_offset_minutes,
     )
 
 

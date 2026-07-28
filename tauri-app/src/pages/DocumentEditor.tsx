@@ -1,3 +1,4 @@
+import { formatDateTime } from '../lib/tz';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -217,7 +218,7 @@ export default function DocumentEditor() {
           >
             <IconArrowLeft size={13} /> Documents
           </button>
-          <h1 className="truncate text-xl font-semibold tracking-tight text-ink">{doc.title}</h1>
+          <h1 className="display truncate text-[22px] text-ink">{doc.title}</h1>
           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-ink-muted">
             <Badge tone={STATUS_TONE[doc.status]}>{doc.status.replace('_', ' ')}</Badge>
             <span>{doc.node_type}</span>
@@ -425,7 +426,7 @@ export default function DocumentEditor() {
                         <Badge tone="neutral">{v.reason.replace('_', ' ')}</Badge>
                       </div>
                       <p className="mt-0.5 text-[11px] text-ink-muted">
-                        {new Date(v.created_at).toLocaleString()} · {v.word_count}w
+                        {formatDateTime(v.created_at)} · {v.word_count}w
                         {v.note && ` · ${v.note}`}
                       </p>
                       <div className="mt-1.5 flex gap-2">

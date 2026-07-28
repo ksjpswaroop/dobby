@@ -1,5 +1,7 @@
 import type { ReactNode, ButtonHTMLAttributes } from 'react';
+import { useLocation } from 'react-router-dom';
 import { cn } from '../lib/cn';
+import { categoryOf } from '../lib/nav';
 import { IconAlert, IconRefresh } from '../lib/icons';
 
 /* -------------------------------------------------------------------------- */
@@ -137,21 +139,37 @@ export function PageHeader({
   subtitle?: string;
   actions?: ReactNode;
   /** Small letterspaced label above the title — carries hierarchy so the
-      heading itself does not have to get larger. */
-  eyebrow?: string;
+      heading itself does not have to get larger.
+   *
+   *  Left unset it is derived from the current route's nav section, so every
+   *  page says where it sits without 27 call sites repeating it (and drifting
+   *  when the nav is reorganised). Pass `null` to suppress it. */
+  eyebrow?: string | null;
 }) {
+  const { pathname } = useLocation();
+  const derived = categoryOf(pathname);
+  // A section's own landing page would otherwise read "Settings / Settings".
+  const label =
+    eyebrow === null ? '' : (eyebrow ?? (derived === title ? '' : derived));
+
+  // Actions sit on the *title* row, with the subtitle spanning beneath. Sharing
+  // one row with the subtitle made the wrap point depend on how long that
+  // sentence happened to be, so the same button landed top-right on one page
+  // and under the text on the next.
   return (
-    <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
-      <div className="min-w-0">
-        {eyebrow && <p className="eyebrow mb-1.5">{eyebrow}</p>}
-        <h1 className="display text-[30px] text-ink">{title}</h1>
-        {subtitle && (
-          <p className="mt-1.5 max-w-2xl text-[13.5px] leading-relaxed text-ink-muted">
-            {subtitle}
-          </p>
+    <div className="mb-7">
+      {label && <p className="eyebrow mb-1.5">{label}</p>}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <h1 className="display min-w-0 text-[30px] text-ink">{title}</h1>
+        {actions && (
+          <div className="flex flex-wrap items-center gap-2">{actions}</div>
         )}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {subtitle && (
+        <p className="mt-1.5 max-w-2xl text-[13.5px] leading-relaxed text-ink-muted">
+          {subtitle}
+        </p>
+      )}
     </div>
   );
 }

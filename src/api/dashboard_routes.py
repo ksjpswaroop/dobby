@@ -238,8 +238,13 @@ async def get_graph(
             .all()
         )
         
-        # Build Mermaid syntax
-        mermaid_lines = ["graph TD"]
+        # Left-to-right, because this graph is a forest, not a tree: each
+        # feature owns its own chain of seven documents. Top-down put all
+        # ~24 chain roots side by side in rank 0, so the drawing came out
+        # twenty-four columns wide and eight deep — a horizontal smear that
+        # no amount of zoom made readable. LR stacks the chains instead, and
+        # matches how the pipeline actually reads: feature → story → docs.
+        mermaid_lines = ["graph LR"]
         
         # Add nodes with styling
         for node in nodes:

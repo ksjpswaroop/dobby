@@ -18,6 +18,39 @@ export default function GraphViewer({ mermaidSyntax, highlightIds = [] }: GraphV
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  // Fit only the first time a graph appears — see the render effect below.
+  const hasFitted = useRef(false);
+
+  /**
+   * Scale the drawing down until it fits the frame.
+   *
+   * Mermaid emits a flowchart at its natural size, and a project with fifty
+   * loosely-connected documents comes out very wide and very short. At 100%
+   * that is a smear of overlapping boxes running off both edges — technically
+   * rendered, practically unreadable. Never scales *up*: a three-node graph
+   * blown up to fill the frame looks broken in the other direction.
+   */
+  const fitToView = useCallback(() => {
+    const host = containerRef.current;
+    const el = host?.querySelector('svg');
+    if (!host || !el) return;
+
+    // Measure unscaled, or the previous transform skews the result.
+    const previous = el.style.transform;
+    el.style.transform = 'none';
+    const box = el.getBoundingClientRect();
+    el.style.transform = previous;
+
+    if (!box.width || !box.height) return;
+    const pad = 24;
+    const next = Math.min(
+      1,
+      (host.clientWidth - pad) / box.width,
+      (host.clientHeight - pad) / box.height,
+    );
+    setScale(Math.max(next, 0.1));
+    setOffset({ x: 0, y: 0 });
+  }, []);
 
   const render = useCallback(async () => {
     if (!containerRef.current) return;
@@ -61,8 +94,16 @@ export default function GraphViewer({ mermaidSyntax, highlightIds = [] }: GraphV
     // Deliberately does NOT reset scale/offset: the graph redraws every time a
     // document is generated, and yanking the viewport back each time would make
     // it unusable while watching a run. "Reset view" restores it on demand.
-    render();
-  }, [render]);
+    render().then(() => {
+      // Only on first appearance. The graph redraws on every generated
+      // document, and re-fitting mid-run would yank the viewport away from
+      // whatever the user was looking at.
+      if (!hasFitted.current) {
+        hasFitted.current = true;
+        requestAnimationFrame(fitToView);
+      }
+    });
+  }, [render, fitToView]);
 
   // Apply transform whenever scale/offset change (reads fresh values — no stale bug)
   useEffect(() => {
@@ -83,11 +124,8 @@ export default function GraphViewer({ mermaidSyntax, highlightIds = [] }: GraphV
   }, [highlightIds]);
 
   const zoomIn = () => setScale((s) => Math.min(s + 0.2, 3));
-  const zoomOut = () => setScale((s) => Math.max(s - 0.2, 0.4));
-  const reset = () => {
-    setScale(1);
-    setOffset({ x: 0, y: 0 });
-  };
+  // Floor low enough that a wide graph can actually be fitted, not just shrunk.
+  const zoomOut = () => setScale((s) => Math.max(s - 0.2, 0.1));
 
   const onMouseDown = (e: React.MouseEvent) => {
     drag.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
@@ -112,7 +150,7 @@ export default function GraphViewer({ mermaidSyntax, highlightIds = [] }: GraphV
         <button className="rounded-lg p-1.5 text-ink-muted hover:bg-surface2 hover:text-ink" onClick={zoomOut} title="Zoom out">
           <IconZoomOut size={16} />
         </button>
-        <button className="rounded-lg p-1.5 text-ink-muted hover:bg-surface2 hover:text-ink" onClick={reset} title="Reset view">
+        <button className="rounded-lg p-1.5 text-ink-muted hover:bg-surface2 hover:text-ink" onClick={fitToView} title="Fit to view">
           <IconMaximize size={16} />
         </button>
       </div>

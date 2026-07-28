@@ -1,3 +1,4 @@
+import { utcOffsetMinutes } from '../../lib/tz';
 import { authedFetch } from '../../lib/auth';
 
 const BASE = 'http://localhost:8000/api/v1/copilot';
@@ -145,5 +146,6 @@ export const copilotApi = {
     req<{ routes: Record<string, string> }>('POST', '/routing', { task_type: taskType, model }),
 
   usage: (projectId?: string, days = 30) =>
-    req<Usage>('GET', `/usage?days=${days}${projectId ? `&project_id=${projectId}` : ''}`),
+    req<Usage>('GET', `/usage?days=${days}&tz_offset_minutes=${utcOffsetMinutes()}`
+                      + (projectId ? `&project_id=${projectId}` : '')),
 };

@@ -1,3 +1,4 @@
+import { dayLabel, formatTime } from '../lib/tz';
 import { useEffect, useState } from 'react';
 import { timelineApi, type TimelineEvent, type EventCategory } from '../features/timeline/api';
 import { Badge, Button, Card, EmptyState, PageHeader, Spinner } from '../components/ui';
@@ -16,22 +17,6 @@ const FILTERS: { label: string; value: EventCategory | 'all' }[] = [
 const CATEGORY_ICON: Record<EventCategory, (p: { size?: number; className?: string }) => JSX.Element> = {
   idea: IconBulb, feature: IconBacklog, run: IconLogs, research: IconResearch,
 };
-
-function dayLabel(iso: string): string {
-  const d = new Date(iso);
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  const sameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-  if (sameDay(d, today)) return 'Today';
-  if (sameDay(d, yesterday)) return 'Yesterday';
-  return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
-}
-
-function timeLabel(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-}
 
 /**
  * A reverse-chronological feed derived from ideas, backlog, runs, and
@@ -126,7 +111,7 @@ export default function Activity() {
                       <Icon size={15} />
                     </div>
                     <span className="min-w-0 flex-1 truncate text-[13px] text-ink">{e.title}</span>
-                    <Badge tone="neutral" className="shrink-0">{timeLabel(e.timestamp)}</Badge>
+                    <Badge tone="neutral" className="shrink-0">{formatTime(e.timestamp)}</Badge>
                   </button>
                 </Card>
               </div>

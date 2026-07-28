@@ -1,3 +1,4 @@
+import { pluralize } from './plural';
 import type { NavigateFunction } from 'react-router-dom';
 import api from '../api/client';
 import { pinsApi } from '../features/pins/api';
@@ -105,7 +106,7 @@ export function buildCommands(ctx: CommandContext): Command[] {
       run: async () => {
         try {
           const { deleted } = await api.clearRuns(projectId);
-          toast(`Cleared ${deleted} run${deleted === 1 ? '' : 's'}`, 'success');
+          toast(`Cleared ${pluralize(deleted, 'run')}`, 'success');
         } catch {
           toast('Failed to clear runs', 'error');
         }

@@ -1,3 +1,4 @@
+import { pluralize } from '../lib/plural';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { DocumentsResponse, DocumentItem } from '../api/client';
@@ -111,7 +112,7 @@ export default function Documents() {
     <div>
       <PageHeader
         title="Documents"
-        subtitle={`${data?.feature_count ?? 0} feature${(data?.feature_count ?? 0) === 1 ? '' : 's'} · ${totalDocs} documents in this project`}
+        subtitle={`${pluralize(data?.feature_count ?? 0, 'feature')} · ${pluralize(totalDocs, 'document')} in this project`}
         actions={
           <div className="flex gap-2">
             <Button variant="ghost" icon={<IconRefresh size={16} />} onClick={load} aria-label="Refresh" />
@@ -148,7 +149,7 @@ export default function Documents() {
                   <div className="truncate text-sm font-semibold" title={f.feature.title}>
                     {f.feature.title}
                   </div>
-                  <div className="mt-0.5 text-[11px] text-ink-muted">{f.documents.length} documents</div>
+                  <div className="mt-0.5 text-[11px] text-ink-muted">{pluralize(f.documents.length, 'document')}</div>
                 </div>
                 <div className="p-1.5">
                   {f.documents.map((d) => (

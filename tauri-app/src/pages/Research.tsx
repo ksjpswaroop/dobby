@@ -1,3 +1,4 @@
+import { pluralize } from '../lib/plural';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -307,7 +308,7 @@ export default function Research() {
     setBusy(true);
     try {
       const r = await researchApi.acceptFeatures(active.id, chosen);
-      toast(`${r.created} feature${r.created === 1 ? '' : 's'} added to the backlog`,
+      toast(`${pluralize(r.created, 'feature')} added to the backlog`,
             'success');
       setProposals(null);
       navigate('/backlog');
@@ -470,8 +471,7 @@ export default function Research() {
                   <IconAlert size={15} className="mt-0.5 shrink-0 text-warning" />
                   <div className="min-w-0 flex-1">
                     <div className="text-[13px] font-medium text-ink">
-                      {active.audit.conflicts.length} contradiction
-                      {active.audit.conflicts.length === 1 ? '' : 's'} between findings
+                      {pluralize(active.audit.conflicts.length, 'contradiction')} between findings
                     </div>
                     <p className="mt-0.5 text-[11px] text-ink-muted">
                       Machine-checked across all {active.audit.checked} findings

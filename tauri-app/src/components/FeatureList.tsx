@@ -1,3 +1,5 @@
+import { pluralize } from '../lib/plural';
+import { parseUTC } from '../lib/tz';
 import { useState, useEffect } from 'react';
 import api, { FeatureBacklogItem } from '../api/client';
 import { LoadingState, ErrorState, EmptyState, Badge } from './ui';
@@ -44,7 +46,7 @@ export default function FeatureList({ projectId, reloadKey, onFeatureSelect }: F
           case 'pareto':
             return b.pareto_score - a.pareto_score;
           case 'created':
-            return new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime();
+            return parseUTC(b.created_at || '').getTime() - parseUTC(a.created_at || '').getTime();
           case 'title':
             return a.title.localeCompare(b.title);
           default:
@@ -89,7 +91,7 @@ export default function FeatureList({ projectId, reloadKey, onFeatureSelect }: F
           </select>
         </div>
         <span className="text-sm text-ink-muted">
-          {features.length} feature{features.length !== 1 ? 's' : ''}
+          {pluralize(features.length, 'feature')}
         </span>
       </div>
 

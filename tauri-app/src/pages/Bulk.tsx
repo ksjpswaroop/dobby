@@ -1,3 +1,4 @@
+import { pluralize } from '../lib/plural';
 import { useState } from 'react';
 import api, { BulkResponse } from '../api/client';
 import { Card, Button, PageHeader, Spinner, ErrorState } from '../components/ui';
@@ -110,7 +111,7 @@ export default function Bulk() {
           />
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <span className="text-sm text-ink-muted">
-              {ideas.length} idea{ideas.length !== 1 ? 's' : ''} · {ideas.length * 7} documents
+              {pluralize(ideas.length, 'idea')} · {pluralize(ideas.length * 7, 'document')}
             </span>
             <div className="flex items-center gap-2">
               <label className="text-sm text-ink-muted">Concurrency</label>

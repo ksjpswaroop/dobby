@@ -1,3 +1,4 @@
+import { pluralize } from '../lib/plural';
 import { useEffect, useState } from 'react';
 import { momentumApi, type Momentum } from '../features/momentum/api';
 import { Card } from './ui';
@@ -63,7 +64,7 @@ export function MomentumCard() {
           {data.sparkline.map((d) => (
             <div
               key={d.date}
-              title={`${dayLabel(d.date)} — ${d.count} action${d.count === 1 ? '' : 's'}`}
+              title={`${dayLabel(d.date)} — ${pluralize(d.count, 'action')}`}
               style={{ height: `${Math.max(4, (d.count / peak) * 34)}px` }}
               className={`w-[7px] rounded-sm ${d.count > 0 ? 'bg-brand' : 'bg-surface2'}`}
             />

@@ -1,3 +1,4 @@
+import { pluralize } from '../../../lib/plural';
 import { useRef, useState } from 'react';
 import { useMindMapStore } from '../store';
 import { Button } from '../../../components/ui';
@@ -94,7 +95,12 @@ export function MapToolbar({ projectId, panelOpen, onTogglePanel }: Props) {
   const nodeCount = tree?.flat.length ?? 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-line bg-surface/60 px-4 py-2">
+    <div className="border-b border-line bg-surface/60 px-4 py-2">
+     {/* Two deliberate rows, not one wrapping pile. As a single flex-wrap the
+         group dividers ended up at line starts and stopped separating
+         anything, so fourteen controls read as an undifferentiated heap.
+         Row one is *which map*; row two is *what to do with it*. */}
+     <div className="flex flex-wrap items-center gap-2">
       <select
         className="input w-auto py-1.5 text-[13px]"
         value={activeMapId ?? ''}
@@ -121,8 +127,23 @@ export function MapToolbar({ projectId, panelOpen, onTogglePanel }: Props) {
         />
       )}
 
-      <span className="mx-1 h-5 w-px bg-line" />
+      <div className="ml-auto flex items-center gap-2 text-[11px] text-ink-muted">
+        <span>{pluralize(nodeCount, 'node')}</span>
+        <span className="flex items-center gap-1">
+          {saving ? (
+            <>
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-warning" /> Saving…
+            </>
+          ) : (
+            <>
+              <IconCheck size={12} className="text-success" /> Saved
+            </>
+          )}
+        </span>
+      </div>
+     </div>
 
+     <div className="mt-2 flex flex-wrap items-center gap-2">
       <Button
         variant="primary"
         icon={<IconPlus size={15} />}
@@ -280,20 +301,7 @@ export function MapToolbar({ projectId, panelOpen, onTogglePanel }: Props) {
         <option value="delete">Delete this map</option>
       </select>
 
-      <div className="ml-auto flex items-center gap-2 text-[11px] text-ink-muted">
-        <span>{nodeCount} node{nodeCount === 1 ? '' : 's'}</span>
-        <span className="flex items-center gap-1">
-          {saving ? (
-            <>
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-warning" /> Saving…
-            </>
-          ) : (
-            <>
-              <IconCheck size={12} className="text-success" /> Saved
-            </>
-          )}
-        </span>
-      </div>
+     </div>
     </div>
   );
 }

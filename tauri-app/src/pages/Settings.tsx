@@ -1,3 +1,4 @@
+import { pluralize } from '../lib/plural';
 import { useEffect, useState } from 'react';
 import api, { AppSettings, ModelInfo, SystemInfo } from '../api/client';
 import { Card, Button, PageHeader, Badge, Spinner, LoadingState, ErrorState } from '../components/ui';
@@ -333,7 +334,7 @@ export default function Settings() {
             </Badge>
             {license && license.tier !== 'free' && (
               <span className="text-[12px] text-ink-muted">
-                {license.seats} seat{license.seats === 1 ? '' : 's'}
+                {pluralize(license.seats, 'seat')}
                 {license.updates_until &&
                   ` · updates until ${new Date(license.updates_until).toLocaleDateString()}`}
                 {!license.updates_until && ' · updates never expire'}

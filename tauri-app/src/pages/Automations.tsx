@@ -1,3 +1,5 @@
+import { pluralize } from '../lib/plural';
+import { parseUTC } from '../lib/tz';
 import { useCallback, useEffect, useState } from 'react';
 import {
   automationApi, type ActionKind, type Automation, type AutomationRun, type Preset,
@@ -15,7 +17,7 @@ import { useToast } from '../lib/toast';
 
 function when(iso: string | null): string {
   if (!iso) return '—';
-  const d = new Date(iso.endsWith('Z') ? iso : `${iso}Z`);
+  const d = parseUTC(iso);
   const mins = Math.round((d.getTime() - Date.now()) / 60000);
   if (mins > 0 && mins < 60) return `in ${mins} min`;
   if (mins < 0 && mins > -60) return `${-mins} min ago`;
@@ -183,7 +185,7 @@ export default function Automations() {
                     <span>·</span>
                     <span>next {when(a.next_run)}</span>
                     <span>·</span>
-                    <span>{a.run_count} run{a.run_count === 1 ? '' : 's'}</span>
+                    <span>{pluralize(a.run_count, 'run')}</span>
                     {a.last_status && (
                       <Badge tone={STATUS_TONE[a.last_status] ?? 'neutral'}>{a.last_status}</Badge>
                     )}
