@@ -5,6 +5,7 @@ import { useTheme, type Theme } from '../lib/theme';
 import { useToast } from '../lib/toast';
 import {
   IconServer,
+  IconSettings,
   IconCpu,
   IconDownload,
   IconTrash,
@@ -97,6 +98,8 @@ export default function Settings() {
 
   const [pullName, setPullName] = useState('');
   const [pulling, setPulling] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [savingName, setSavingName] = useState(false);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelsError, setModelsError] = useState<string | null>(null);
   const [busyModel, setBusyModel] = useState<string | null>(null);
@@ -109,6 +112,7 @@ export default function Settings() {
       setSettings(s);
       setSystem(sys);
       setHost(s.ollama_host);
+      setUserName(s.user_name || '');
       setThreshold(s.verification_threshold);
       setSearchProvider(s.search_provider || 'none');
       setSearxngUrl(s.searxng_url || '');
@@ -180,6 +184,18 @@ export default function Settings() {
       toast(err instanceof Error ? err.message : 'Failed', 'error');
     } finally {
       setLicenseBusy(false);
+    }
+  };
+
+  const saveName = async () => {
+    try {
+      setSavingName(true);
+      const s = await api.updateSettings({ user_name: userName.trim() });
+      setSettings(s);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save your name.');
+    } finally {
+      setSavingName(false);
     }
   };
 
@@ -356,6 +372,33 @@ export default function Settings() {
               </Button>
             </div>
           )}
+        </div>
+      </Section>
+
+      {/* Who you are — used by the greeting on the Today screen. */}
+      <Section
+        icon={<IconSettings size={18} />}
+        title="Your name"
+        description="Dobby greets you by name on the Today screen. Stored on this device only."
+      >
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="min-w-[240px] flex-1">
+            <label className="label">Name</label>
+            <input
+              className="input"
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              placeholder="Your first name"
+            />
+          </div>
+          <Button
+            variant="primary"
+            loading={savingName}
+            onClick={saveName}
+            disabled={userName.trim() === (settings?.user_name || '')}
+          >
+            Save
+          </Button>
         </div>
       </Section>
 

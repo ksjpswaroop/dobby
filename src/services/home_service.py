@@ -26,6 +26,12 @@ from src.db.session_models import WorkSession
 SECTION_LIMIT = 5
 
 
+def _user_name() -> str:
+    from src.settings import get_settings
+
+    return (getattr(get_settings(), "user_name", "") or "").strip()
+
+
 def _greeting(now: datetime) -> str:
     h = now.hour
     if h < 12:
@@ -85,6 +91,8 @@ def build_home(db: DatabaseManager, project_id: str) -> Dict[str, Any]:
     total = (len(needs_decision) + len(needs_triage) + len(in_progress) + len(needs_attention))
     return {
         "greeting": _greeting(datetime.now()),
+        "user_name": _user_name(),
+        "today": datetime.now().strftime("%A, %B %-d, %Y"),
         "needs_decision": needs_decision,
         "needs_triage": needs_triage,
         "in_progress": in_progress,

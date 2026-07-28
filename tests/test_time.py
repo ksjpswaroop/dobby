@@ -400,3 +400,44 @@ class TestRoutes:
     def test_meta_exposes_the_shared_conversion(self, client):
         body = client.get("/api/v1/time/meta").json()
         assert body["minutes_per_point"] == effort.minutes_per_point()
+
+
+class TestLocalDayBoundary:
+    """Totals follow the user's day, not UTC's.
+
+    This is the bug that made the suite fail only between UTC midnight and the
+    user's own midnight: `log()` back-dates an entry by its duration, so an
+    evening's work west of Greenwich started on the *previous* UTC day and
+    fell outside a UTC-shaped "today" window entirely.
+    """
+
+    def test_an_evening_west_of_utc_counts_as_today(self, db, proj):
+        fid = a_feature(db, proj, "Evening work")
+        # 23:30 UTC on the 1st is 18:30 local for someone at UTC-5.
+        svc.log(db, proj, 60, fid, when="2026-03-01T23:30:00")
+
+        offset = -5 * 60
+        out = svc.day_summary(db, proj, "2026-03-01", tz_offset_minutes=offset)
+        assert out["total_minutes"] == 60
+
+        # And it must not also appear on the next local day.
+        assert svc.day_summary(db, proj, "2026-03-02",
+                               tz_offset_minutes=offset)["total_minutes"] == 0
+
+    def test_an_early_morning_east_of_utc_counts_as_today(self, db, proj):
+        fid = a_feature(db, proj, "Early start")
+        # 22:00 UTC on the 1st is already 03:30 on the 2nd at UTC+5:30.
+        svc.log(db, proj, 30, fid, when="2026-03-01T22:00:00")
+
+        offset = 5 * 60 + 30
+        assert svc.day_summary(db, proj, "2026-03-02",
+                               tz_offset_minutes=offset)["total_minutes"] == 30
+        assert svc.day_summary(db, proj, "2026-03-01",
+                               tz_offset_minutes=offset)["total_minutes"] == 0
+
+    def test_week_buckets_use_the_same_boundary(self, db, proj):
+        fid = a_feature(db, proj, "Bucketed")
+        svc.log(db, proj, 45, fid, when="2026-03-01T23:30:00")
+        out = svc.week_summary(db, proj, weeks=52, tz_offset_minutes=-5 * 60)
+        hit = [d for d in out["days"] if d["minutes"] == 45]
+        assert len(hit) == 1 and hit[0]["date"] == "2026-03-01"

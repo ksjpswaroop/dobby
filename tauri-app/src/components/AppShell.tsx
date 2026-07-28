@@ -300,17 +300,24 @@ export default function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen overflow-hidden bg-bg text-ink">
       {/* Sidebar */}
-      <aside className="flex w-60 shrink-0 flex-col border-r border-line bg-surface/60">
-        <div className="flex h-14 items-center gap-2.5 px-5">
-          <img src="/icon.svg" alt="" className="h-7 w-7 rounded-lg" />
-          <span className="text-[15px] font-semibold tracking-tight">Dobby</span>
-          <span className="ml-auto rounded-md bg-surface2 px-1.5 py-0.5 text-[10px] font-medium text-ink-muted">
+      <aside className="flex w-[248px] shrink-0 flex-col border-r border-line bg-surface/50">
+        <div className="flex items-start gap-3 px-5 pb-4 pt-5">
+          <img src="/icon.svg" alt="" className="mt-0.5 h-8 w-8 rounded-xl" />
+          <div className="min-w-0 flex-1">
+            <div className="display text-[19px] leading-none text-ink">Dobby</div>
+            {/* The promise sits under the wordmark, not in a footer nobody
+                reads. It is the reason to use this rather than a hosted tool. */}
+            <div className="mt-1 text-[11px] leading-none text-ink-muted">
+              Private. Local. Yours.
+            </div>
+          </div>
+          <span className="rounded-md bg-surface2 px-1.5 py-0.5 text-[10px] font-medium text-ink-muted">
             v{version}
           </span>
         </div>
 
         {/* Five verbs, not fifteen links. Sub-surfaces live in the tab strip. */}
-        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
+        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-3">
           {NAV_SECTIONS.map(({ label, route, icon: Icon, hint, items }) => (
             <NavLink
               key={label}
@@ -327,10 +334,20 @@ export default function AppShell({ children }: { children: ReactNode }) {
           ))}
         </nav>
 
-        <div className="border-t border-line p-3">
-          <p className="px-2 text-[11px] leading-relaxed text-ink-muted">
-            Local-first · runs on Ollama
-          </p>
+        <div className="border-t border-line px-5 py-4">
+          <div className="flex items-start gap-2">
+            <span
+              className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full"
+              style={{ background: 'rgb(var(--success))' }}
+              aria-hidden="true"
+            />
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium leading-none text-ink">Local-first</p>
+              <p className="mt-1 text-[10.5px] leading-snug text-ink-muted">
+                All data is on this device
+              </p>
+            </div>
+          </div>
         </div>
       </aside>
 

@@ -83,6 +83,7 @@ export interface YoloGenerationResult {
 }
 
 export interface AppSettings {
+  user_name: string;
   ollama_host: string;
   model: string;
   theme: 'system' | 'light' | 'dark';
@@ -101,6 +102,7 @@ export interface AppSettings {
 }
 
 export interface SettingsUpdate {
+  user_name?: string;
   ollama_host?: string;
   model?: string;
   theme?: 'system' | 'light' | 'dark';

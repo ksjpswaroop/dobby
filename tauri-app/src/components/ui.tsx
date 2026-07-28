@@ -131,18 +131,27 @@ export function PageHeader({
   title,
   subtitle,
   actions,
+  eyebrow,
 }: {
   title: string;
   subtitle?: string;
   actions?: ReactNode;
+  /** Small letterspaced label above the title — carries hierarchy so the
+      heading itself does not have to get larger. */
+  eyebrow?: string;
 }) {
   return (
-    <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-ink-muted">{subtitle}</p>}
+    <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
+      <div className="min-w-0">
+        {eyebrow && <p className="eyebrow mb-1.5">{eyebrow}</p>}
+        <h1 className="display text-[30px] text-ink">{title}</h1>
+        {subtitle && (
+          <p className="mt-1.5 max-w-2xl text-[13.5px] leading-relaxed text-ink-muted">
+            {subtitle}
+          </p>
+        )}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }
@@ -168,7 +177,7 @@ export function EmptyState({
           {icon}
         </div>
       )}
-      <h3 className="text-base font-medium text-ink">{title}</h3>
+      <h3 className="display text-[17px] text-ink">{title}</h3>
       {description && <p className="mt-1 max-w-sm text-sm text-ink-muted">{description}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>

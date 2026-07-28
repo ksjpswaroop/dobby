@@ -26,6 +26,8 @@ router = APIRouter(prefix="/api/v1", tags=["Settings"])
 # Schemas
 # ============================================================================
 class SettingsResponse(BaseModel):
+    # Empty until the user fills it in; the greeting simply omits the name.
+    user_name: str = ""
     ollama_host: str
     model: str
     theme: str
@@ -66,6 +68,7 @@ class SettingsResponse(BaseModel):
 
 
 class SettingsUpdate(BaseModel):
+    user_name: str | None = Field(default=None, max_length=80)
     ollama_host: str | None = None
     model: str | None = None
     theme: str | None = None

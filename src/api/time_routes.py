@@ -86,17 +86,21 @@ async def spent(feature_id: str, db: DatabaseManager = Depends(get_db)):
 
 @router.get("/day/{project_id}")
 async def day(project_id: str, on: Optional[str] = None,
+              tz_offset_minutes: Optional[int] = None,
               db: DatabaseManager = Depends(get_db)):
+    """`tz_offset_minutes` is the client's offset from UTC (positive east of
+    Greenwich). Omitted, the server's own offset is used."""
     try:
-        return svc.day_summary(db, project_id, on)
+        return svc.day_summary(db, project_id, on, tz_offset_minutes)
     except svc.TimeError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/weeks/{project_id}")
 async def weeks(project_id: str, weeks: int = 4,
+                tz_offset_minutes: Optional[int] = None,
                 db: DatabaseManager = Depends(get_db)):
-    return svc.week_summary(db, project_id, weeks)
+    return svc.week_summary(db, project_id, weeks, tz_offset_minutes)
 
 
 @router.delete("/{entry_id}")

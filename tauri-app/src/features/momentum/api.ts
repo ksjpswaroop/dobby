@@ -1,3 +1,4 @@
+import { utcOffsetMinutes } from '../../lib/tz';
 import { authedFetch } from '../../lib/auth';
 
 const BASE = 'http://localhost:8000/api/v1/momentum';
@@ -19,11 +20,10 @@ export interface Momentum {
 export const momentumApi = {
   /**
    * The browser is the only component that reliably knows the user's
-   * timezone, so it tells the backend. `getTimezoneOffset()` is inverted
-   * (it returns minutes to *add* to local to get UTC), hence the negation.
+   * timezone, so it tells the backend. See `lib/tz` for the sign convention.
    */
   get: async (projectId: string): Promise<Momentum> => {
-    const offset = -new Date().getTimezoneOffset();
+    const offset = utcOffsetMinutes();
     const resp = await authedFetch(
       `${BASE}/project/${projectId}?tz_offset_minutes=${offset}`
     );

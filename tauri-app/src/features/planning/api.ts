@@ -2,6 +2,18 @@ import { authedFetch } from '../../lib/auth';
 
 const BASE = 'http://localhost:8000/api/v1/planning';
 
+/** Some planning surfaces live outside this router's prefix. */
+async function reqAt<T>(method: string, absPath: string, body?: unknown): Promise<T> {
+  const resp = await authedFetch(`http://localhost:8000${absPath}`, {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const j = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error((j as any).detail || `Request failed (${resp.status})`);
+  return j as T;
+}
+
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
   const resp = await authedFetch(`${BASE}${path}`, {
     method,
@@ -70,7 +82,40 @@ export interface WeeklyReview {
   ready_next: Card[];
 }
 
+export interface DayBlock {
+  feature_id: string | null;
+  title: string;
+  kind: string;
+  start: string;
+  end: string;
+  minutes: number;
+  partial?: boolean;
+  why?: string;
+  remaining_minutes?: number;
+  spent_minutes?: number;
+}
+
+export interface DaySchedule {
+  date: string;
+  blocks: DayBlock[];
+  unscheduled: { title: string; reason: string }[];
+  not_today: { title: string; reason: string }[];
+  utilisation: number;
+  capacity_minutes: number;
+  capacity_human: string;
+  fits: boolean;
+}
+
 export const planningApi = {
+  /** What to do today and when. Capacity defaults to the workable day. */
+  planDay: (projectId: string, planDate?: string) =>
+    reqAt<DaySchedule>('POST', `/api/v1/timeblocks/plan/${projectId}`,
+                       { plan_date: planDate ?? null }),
+
+  today: (projectId: string) =>
+    reqAt<{ greeting: string; user_name: string; today: string; clear: boolean }>(
+      'GET', `/api/v1/projects/${projectId}/home`),
+
   board: (projectId: string, sprintId?: string) =>
     req<Board>('GET', `/board/${projectId}${sprintId ? `?sprint_id=${sprintId}` : ''}`),
 

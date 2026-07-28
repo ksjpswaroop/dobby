@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api, { DashboardData } from '../api/client';
-import { Card, LoadingState, ErrorState, Badge, Button, PageHeader } from '../components/ui';
+import { Card, LoadingState, ErrorState, Badge, Button } from '../components/ui';
 import { PinnedStrip } from '../components/PinnedStrip';
 import { TodayHome } from '../components/TodayHome';
+import { DailyAlignment } from '../components/DailyAlignment';
 import { Onboarding } from '../components/Onboarding';
 import { MomentumCard } from '../components/MomentumCard';
-import { NextActionCard } from '../components/NextActionCard';
 import { useProject } from '../lib/project';
 import {
   IconWizard,
@@ -103,14 +103,19 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Today" subtitle="Your local document workspace at a glance." />
+    <div className="space-y-8">
+      {/* The greeting, the outcome, and the plan lead. Everything else is
+          supporting detail and sits below the fold. */}
+      <DailyAlignment />
 
-      <Onboarding />
-      <MomentumCard />
-      <NextActionCard />
-      <PinnedStrip />
-      <TodayHome />
+      {/* Everything below is context, not instruction. The divider matters:
+          without it the momentum card's numeral reads as another plan step. */}
+      <div className="space-y-6 border-t border-line pt-8">
+        <Onboarding />
+        <MomentumCard />
+        <PinnedStrip />
+        <TodayHome />
+      </div>
 
       {/* Stats (click through to the matching view) */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

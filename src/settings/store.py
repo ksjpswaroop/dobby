@@ -123,6 +123,10 @@ class Settings:
     # because 45 minutes per point is a guess about *your* work, not a fact.
     minutes_per_point: int = 45
 
+    # Shown in the daily greeting. Empty is fine — the greeting simply drops
+    # the name rather than inventing one or saying "there".
+    user_name: str = ""
+
     # User-composed pipelines, keyed by project (D92). Steps come from a fixed
     # catalogue — never user code, for the same reason custom rules don't.
     pipelines: Dict[str, Any] = field(default_factory=dict)

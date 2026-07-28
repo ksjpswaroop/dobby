@@ -5,38 +5,42 @@
 /* ==========================================================================
    Design tokens
    ========================================================================== */
-/* Palette ported from OpenWorker (surfaces/gui/src/styles.css): cool "tool gray"
-   neutrals, violet accent, and OpenWorker's ok/warn/danger tones. Stored as
-   "R G B" triplets for Tailwind's rgb(var(--x) / <alpha>) tokens. */
+/* Neutrals are deliberately *warm* rather than the cool "tool gray" this
+   started as. A cool gray reads as an IDE; a warm off-white reads as paper,
+   which is the right register for something you open every morning to think
+   in. Stored as "R G B" triplets for Tailwind's rgb(var(--x) / <alpha>). */
 :root {
-  --bg: 245 246 247;        /* OpenWorker --paper #f5f6f7 */
-  --surface: 255 255 255;   /* --panel #ffffff */
-  --surface2: 238 240 242;  /* soft neutral fill */
-  --line: 232 234 237;      /* --line #e8eaed */
-  --ink: 23 25 28;          /* --ink #17191c */
-  --ink-muted: 91 97 107;   /* --muted #5b616b */
-  --brand: 124 58 237;      /* --accent #7c3aed */
+  --bg: 250 249 245;        /* warm paper */
+  --surface: 255 255 255;
+  --surface2: 244 242 236;  /* a shade of the paper, not a gray */
+  --line: 231 228 219;      /* hairline, warm */
+  --ink: 26 26 23;          /* near-black with warmth, never pure #000 */
+  --ink-muted: 108 105 95;
+  --brand: 79 70 229;       /* indigo — the primary action colour */
   --brand-fg: 255 255 255;
-  --accent: 168 85 247;     /* violet accent tone */
-  --success: 47 125 87;     /* --ok #2f7d57 */
-  --warning: 180 83 9;      /* --warn-ink #b45309 */
-  --danger: 185 28 28;      /* --danger #b91c1c */
+  --accent: 124 58 237;     /* violet — structure and the work graph */
+  --success: 45 90 61;      /* forest green — outcomes, "local" reassurance */
+  --warning: 180 83 9;
+  --danger: 185 28 28;
   color-scheme: light;
 }
 
 .dark {
-  --bg: 19 20 23;           /* OpenWorker dark --paper #131417 */
-  --surface: 28 30 34;      /* --panel #1c1e22 */
-  --surface2: 37 40 46;
-  --line: 42 45 51;         /* --line #2a2d33 */
-  --ink: 230 232 235;       /* --ink #e6e8eb */
-  --ink-muted: 154 161 171; /* --muted #9aa1ab */
-  --brand: 167 139 250;     /* --accent #a78bfa */
+  /* Navy-black rather than neutral black: the same warmth decision, in the
+     other direction. Pure gray at these values looks dead next to the
+     blue accent. */
+  --bg: 15 19 25;
+  --surface: 22 27 34;
+  --surface2: 30 36 45;
+  --line: 42 50 61;
+  --ink: 230 237 243;
+  --ink-muted: 148 158 171;
+  --brand: 59 130 246;      /* blue reads better than indigo on navy */
   --brand-fg: 255 255 255;
-  --accent: 196 181 253;
-  --success: 88 176 127;    /* --ok #58b07f */
-  --warning: 232 176 75;    /* --warn-ink #e8b04b */
-  --danger: 240 112 103;    /* --danger #f07067 */
+  --accent: 167 139 250;
+  --success: 110 190 140;
+  --warning: 232 176 75;
+  --danger: 240 112 103;
   color-scheme: dark;
 }
 
@@ -52,6 +56,8 @@
     background-color: rgb(var(--bg));
     color: rgb(var(--ink));
     font-family: theme('fontFamily.sans');
+    font-size: 14px;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -99,6 +105,35 @@
     @apply rounded-2xl border border-line bg-surface shadow-soft;
   }
 
+  /* Display type. A system serif — ui-serif resolves to New York on macOS
+     and a decent transitional elsewhere — so there is no webfont to fetch,
+     which matters for something that promises to work offline. */
+  .display {
+    font-family: theme('fontFamily.display');
+    font-weight: 600;
+    letter-spacing: -0.018em;
+    line-height: 1.15;
+  }
+
+  /* The small letterspaced label above a section: TODAY'S OUTCOME,
+     PRIORITIZED PLAN. Carries the hierarchy so headings do not have to
+     shout. */
+  .eyebrow {
+    @apply text-[10px] font-semibold uppercase text-ink-muted;
+    letter-spacing: 0.11em;
+  }
+
+  /* A statement with a coloured rule down its left edge — used for the
+     day's outcome, quotes, and anything that should read as *the point*. */
+  .rule-accent {
+    @apply border-l-[3px] pl-4;
+    border-color: rgb(var(--success));
+  }
+  .rule-brand {
+    @apply border-l-[3px] pl-4;
+    border-color: rgb(var(--brand));
+  }
+
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium
       transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50 select-none
@@ -134,12 +169,28 @@
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
   }
 
+  /* Nav items carry a left rule when active rather than a filled pill: the
+     rule reads as "you are here" without turning the sidebar into a stack of
+     coloured blocks. */
   .nav-link {
-    @apply flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-ink-muted
-      transition-colors hover:bg-surface2 hover:text-ink;
+    @apply relative flex items-center gap-3 rounded-xl py-2 pl-4 pr-3 text-sm font-medium
+      text-ink-muted transition-colors hover:bg-surface2 hover:text-ink;
   }
   .nav-link-active {
-    @apply bg-brand/10 text-brand hover:bg-brand/15 hover:text-brand;
+    @apply bg-surface2 text-ink hover:bg-surface2 hover:text-ink;
+  }
+  .nav-link-active::before {
+    content: '';
+    @apply absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full;
+    background: rgb(var(--brand));
+  }
+
+  /* The numeral beside each item in the prioritized plan. Large, light, and
+     set in the display serif so it reads as typography rather than a badge. */
+  .plan-numeral {
+    font-family: theme('fontFamily.display');
+    @apply text-2xl font-medium tabular-nums text-ink-muted/55;
+    line-height: 1;
   }
 
   .skeleton {
@@ -177,3 +228,39 @@
   white-space: nowrap;
   border-width: 0;
 }
+
+/* ---------------------------------------------------------------------------
+   React Flow chrome
+   The library ships its own light-only palette for controls, minimap, and edge
+   labels, so in dark mode they render as white boxes floating over the canvas.
+   These map its variables onto ours instead of restyling each element.
+   --------------------------------------------------------------------------- */
+.react-flow__controls-button {
+  background: rgb(var(--surface));
+  border-bottom: 1px solid rgb(var(--line));
+  color: rgb(var(--ink));
+  fill: currentColor;
+}
+.react-flow__controls-button:hover { background: rgb(var(--surface2)); }
+.react-flow__controls {
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.react-flow__minimap {
+  background: rgb(var(--surface2));
+  border: 1px solid rgb(var(--line));
+  border-radius: 6px;
+}
+
+/* Custom node components render nothing the minimap can sample, so without
+   an explicit fill it draws an empty rectangle. */
+.react-flow__minimap-node { fill: rgb(var(--ink-muted) / 0.45); stroke: none; }
+.react-flow__minimap-mask { fill: rgb(var(--bg) / 0.55); }
+
+/* Edge labels default to a white rect with dark text. */
+.react-flow__edge-textbg { fill: rgb(var(--surface)); }
+.react-flow__edge-text { fill: rgb(var(--ink-muted)); font-size: 10px; }
+
+.react-flow__attribution { display: none; }

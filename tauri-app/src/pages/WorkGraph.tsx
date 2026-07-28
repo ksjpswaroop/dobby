@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Background, Controls, MiniMap, ReactFlow, ReactFlowProvider,
+  Background, Controls, ReactFlow, ReactFlowProvider,
   type Edge, type Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -183,22 +183,9 @@ export default function WorkGraphPage() {
               >
                 <Background gap={18} size={1} />
                 <Controls showInteractive={false} />
-                {/* The minimap only earns its space once the graph is bigger
-                    than the viewport; below that it is an empty white box. */}
-                {flow.nodes.length > 8 && (
-                  <MiniMap
-                    pannable
-                    zoomable
-                    maskColor="rgba(0,0,0,0.06)"
-                    style={{ background: 'transparent',
-                             border: '1px solid rgba(128,128,128,0.25)',
-                             borderRadius: 10 }}
-                    nodeColor={(n) => {
-                      const id = String(n.id).split(':')[0];
-                      return TYPE_STYLE[id]?.border ?? '#6b7280';
-                    }}
-                  />
-                )}
+                {/* No minimap: the service caps the graph at MAX_PROJECT_NODES,
+                    so it always fits the viewport, and React Flow draws no
+                    node rects for these custom nodes anyway — an empty box. */}
               </ReactFlow>
             </ReactFlowProvider>
           </div>

@@ -21,13 +21,14 @@ the systems themselves so it cannot claim a capability that does not exist.
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 import structlog
 
 from src.db.journal_models import ENTRY_KINDS, JournalEntry
 from src.db.schema import DatabaseManager, Project
+from src.services import localday
 
 logger = structlog.get_logger()
 
@@ -46,9 +47,15 @@ def _entry_dict(e: JournalEntry) -> Dict[str, Any]:
     }
 
 
+def _event_day(timestamp, tz_offset_minutes: Optional[int]) -> str:
+    """A stored UTC timestamp as the user's calendar day, or "" if unusable."""
+    d = localday.local_day(timestamp, tz_offset_minutes)
+    return d.isoformat() if d else ""
+
+
 def _parse_date(value: Optional[str]) -> str:
     if not value:
-        return datetime.now().date().isoformat()
+        return localday.today_local().isoformat()
     try:
         return datetime.fromisoformat(value).date().isoformat()
     except ValueError:
@@ -131,7 +138,8 @@ def delete(db: DatabaseManager, entry_id: str) -> bool:
 
 def auto_entry(db: DatabaseManager, project_id: str,
                entry_date: Optional[str] = None,
-               save: bool = False) -> Dict[str, Any]:
+               save: bool = False,
+               tz_offset_minutes: Optional[int] = None) -> Dict[str, Any]:
     """Draft a day's entry from what actually happened.
 
     Reads the Activity Timeline rather than asking a model to remember: the
@@ -144,7 +152,7 @@ def auto_entry(db: DatabaseManager, project_id: str,
     page = timeline_service.list_events(db, project_id, limit=200)
 
     same_day = [e for e in page["events"]
-                if (e.get("timestamp") or "")[:10] == day]
+                if _event_day(e.get("timestamp"), tz_offset_minutes) == day]
 
     by_category: Dict[str, List[str]] = {}
     for e in same_day:

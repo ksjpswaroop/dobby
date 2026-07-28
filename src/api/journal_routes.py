@@ -31,6 +31,10 @@ class EntryWrite(BaseModel):
 class AutoDraft(BaseModel):
     entry_date: Optional[str] = None
     save: bool = False
+    # The client's offset from UTC (positive east of Greenwich), so the draft
+    # covers the user's day rather than the UTC one. Omitted, the server's
+    # own offset is used — correct when the backend runs on their machine.
+    tz_offset_minutes: Optional[int] = None
 
 
 @router.get("/meta")
@@ -74,7 +78,8 @@ async def write(req: EntryWrite, db: DatabaseManager = Depends(get_db)):
 async def auto(project_id: str, req: AutoDraft,
                db: DatabaseManager = Depends(get_db)):
     try:
-        return svc.auto_entry(db, project_id, req.entry_date, req.save)
+        return svc.auto_entry(db, project_id, req.entry_date, req.save,
+                              req.tz_offset_minutes)
     except svc.JournalError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

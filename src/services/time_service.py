@@ -26,7 +26,7 @@ import structlog
 
 from src.db.schema import DatabaseManager, FeatureBacklog, Project
 from src.db.time_models import TIME_SOURCES, TimeEntry
-from src.services import effort
+from src.services import effort, localday
 
 logger = structlog.get_logger()
 
@@ -215,16 +215,21 @@ def list_entries(db: DatabaseManager, project_id: str,
 
 
 def day_summary(db: DatabaseManager, project_id: str,
-                on: Optional[str] = None) -> Dict[str, Any]:
-    """What a given day actually went on."""
+                on: Optional[str] = None,
+                tz_offset_minutes: Optional[int] = None) -> Dict[str, Any]:
+    """What a given day actually went on.
+
+    The window is the user's local day converted to UTC, not the UTC day: an
+    evening's work west of UTC belongs to the evening it happened, not to
+    tomorrow's total.
+    """
     try:
         target = (datetime.fromisoformat(on).date() if on
-                  else datetime.utcnow().date())
+                  else localday.today_local(tz_offset_minutes))
     except ValueError:
         raise TimeError("Dates must be ISO format (YYYY-MM-DD).")
 
-    start_dt = datetime.combine(target, datetime.min.time())
-    end_dt = start_dt + timedelta(days=1)
+    start_dt, end_dt = localday.utc_window(target, tz_offset_minutes)
 
     with db.get_session() as s:
         rows = (s.query(TimeEntry)
@@ -261,23 +266,27 @@ def day_summary(db: DatabaseManager, project_id: str,
 
 
 def week_summary(db: DatabaseManager, project_id: str,
-                 weeks: int = 4) -> Dict[str, Any]:
+                 weeks: int = 4,
+                 tz_offset_minutes: Optional[int] = None) -> Dict[str, Any]:
     """Daily totals, zero-filled, so a gap reads as a gap."""
-    today = datetime.utcnow().date()
+    today = localday.today_local(tz_offset_minutes)
     start = today - timedelta(days=weeks * 7 - 1)
+    window_start, _ = localday.utc_window(start, tz_offset_minutes)
 
     with db.get_session() as s:
         rows = (s.query(TimeEntry)
                 .filter(TimeEntry.project_id == project_id,
-                        TimeEntry.started_at >= datetime.combine(
-                            start, datetime.min.time())).all())
+                        TimeEntry.started_at >= window_start).all())
 
     per_day: Dict[str, int] = {}
     now = datetime.utcnow()
     for e in rows:
         minutes = (int((now - e.started_at).total_seconds() // 60)
                    if e.ended_at is None else (e.minutes or 0))
-        d = e.started_at.date().isoformat()
+        day = localday.local_day(e.started_at, tz_offset_minutes)
+        if day is None:
+            continue
+        d = day.isoformat()
         per_day[d] = per_day.get(d, 0) + minutes
 
     days = []

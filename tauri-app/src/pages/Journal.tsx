@@ -1,3 +1,4 @@
+import { localDateISO } from '../lib/tz';
 import { useEffect, useState } from 'react';
 import { journalApi, type JournalEntry } from '../features/journal/api';
 import {
@@ -8,7 +9,7 @@ import { IconNotes, IconSparkles } from '../lib/icons';
 import { useProject } from '../lib/project';
 import { useToast } from '../lib/toast';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => localDateISO();
 
 /**
  * A dated reflection, not a second capture inbox — Ideas already owns

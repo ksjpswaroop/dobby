@@ -26,7 +26,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Set
 
 from src.db.schema import DatabaseManager
-from src.services import timeline_service
+from src.services import localday, timeline_service
 
 SPARKLINE_DAYS = 14
 
@@ -107,12 +107,7 @@ def sparkline(events: List[Dict[str, Any]], tz_offset_minutes: int,
 
 def get_momentum(db: DatabaseManager, project_id: str,
                  tz_offset_minutes: Optional[int] = None) -> Dict[str, Any]:
-    if tz_offset_minutes is None:
-        # Server-local offset: correct when the backend runs on the user's
-        # own machine, which is the local-first default.
-        tz_offset_minutes = -int(
-            (datetime.utcnow() - datetime.now()).total_seconds() // 60
-        )
+    tz_offset_minutes = localday.resolve_offset(tz_offset_minutes)
 
     # One bounded read; the timeline caps per-source fetches already.
     page = timeline_service.list_events(db, project_id, limit=1000)

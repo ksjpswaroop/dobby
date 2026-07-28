@@ -1,3 +1,4 @@
+import { utcOffsetMinutes } from '../../lib/tz';
 import { authedFetch } from '../../lib/auth';
 
 const BASE = 'http://localhost:8000/api/v1';
@@ -54,9 +55,12 @@ export const journalApi = {
     req<JournalEntry>('POST', '/journal', {
       project_id: projectId, body, entry_date: entryDate ?? null, title,
     }),
+  // The offset goes with the request so the draft covers the user's day
+  // rather than UTC's — an evening west of Greenwich is already tomorrow there.
   autoDraft: (projectId: string, save = false, entryDate?: string) =>
     req<Draft>('POST', `/journal/auto/${projectId}`, {
       save, entry_date: entryDate ?? null,
+      tz_offset_minutes: utcOffsetMinutes(),
     }),
   remove: (id: string) => req<{ success: boolean }>('DELETE', `/journal/${id}`),
   registry: (projectId: string) => req<Registry>('GET', `/apps/${projectId}`),

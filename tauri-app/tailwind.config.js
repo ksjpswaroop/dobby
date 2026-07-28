@@ -29,6 +29,18 @@ export default {
           'sans-serif',
         ],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'monospace'],
+        // System serif only. ui-serif is New York on macOS and a reasonable
+        // transitional elsewhere — no webfont to fetch, which is the point
+        // for an app that promises to work with no network.
+        display: [
+          'ui-serif',
+          'New York',
+          'Iowan Old Style',
+          'Charter',
+          'Georgia',
+          'Cambria',
+          'serif',
+        ],
       },
       borderRadius: {
         xl: '0.875rem',
