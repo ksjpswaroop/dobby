@@ -189,7 +189,7 @@ export default function Decisions() {
                       <span className="min-w-0 flex-1">
                         <span className="text-[13px] text-ink">{o.label}</span>
                         {o.note && (
-                          <span className="block text-[11.5px] text-ink-muted">{o.note}</span>
+                          <span className="block text-[11px] text-ink-muted">{o.note}</span>
                         )}
                       </span>
                       {d.status === 'open' && deciding === d.id && (
@@ -202,7 +202,7 @@ export default function Decisions() {
                 </ul>
 
                 {d.rationale && (
-                  <p className="mt-2.5 border-l-2 border-line pl-3 text-[12.5px] italic text-ink-muted">
+                  <p className="mt-2.5 border-l-2 border-line pl-3 text-[12px] italic text-ink-muted">
                     {d.rationale}
                   </p>
                 )}
@@ -215,7 +215,7 @@ export default function Decisions() {
                           value={rationale} onChange={(e) => setRationale(e.target.value)}
                           rows={2}
                           placeholder="Why this one? (recorded permanently)"
-                          className="w-full rounded-xl border border-line bg-surface2 px-3 py-2 text-[12.5px] outline-none focus:border-brand/50"
+                          className="w-full rounded-xl border border-line bg-surface2 px-3 py-2 text-[12px] outline-none focus:border-brand/50"
                         />
                         <Button variant="ghost" onClick={() => { setDeciding(null); setRationale(''); }}>
                           Cancel

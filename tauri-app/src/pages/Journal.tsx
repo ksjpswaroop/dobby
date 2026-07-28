@@ -106,7 +106,7 @@ export default function Journal() {
             value={body} onChange={(e) => setBody(e.target.value)}
             rows={12}
             placeholder="What happened today? What went well? What was hard?"
-            className="w-full rounded-xl border border-line bg-surface2 p-3.5 font-mono text-[12.5px] leading-relaxed outline-none focus:border-brand/50"
+            className="w-full rounded-xl border border-line bg-surface2 p-3.5 font-mono text-[12px] leading-relaxed outline-none focus:border-brand/50"
           />
           <Button variant="primary" loading={saving} disabled={!body.trim()}
                   onClick={save}>

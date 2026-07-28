@@ -216,7 +216,7 @@ export default function WorkGraphPage() {
                 {detail.node.title}
               </h3>
               {detail.node.subtitle && (
-                <p className="mt-1 text-[12.5px] text-ink-muted">{detail.node.subtitle}</p>
+                <p className="mt-1 text-[12px] text-ink-muted">{detail.node.subtitle}</p>
               )}
 
               {detail.node.type === 'decision' && detail.node.meta?.due_on && (
@@ -232,7 +232,7 @@ export default function WorkGraphPage() {
                   <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
                     Insight
                   </p>
-                  <p className="text-[12.5px] text-ink">{detail.insight}</p>
+                  <p className="text-[12px] text-ink">{detail.insight}</p>
                   <p className="mt-1.5 text-[10px] text-ink-muted">
                     Computed from your data — not generated.
                   </p>
@@ -246,7 +246,7 @@ export default function WorkGraphPage() {
                   </p>
                   <ul className="space-y-1">
                     {[...detail.connected_to, ...detail.connected_from].map((c, i) => (
-                      <li key={`${c.node.id}-${i}`} className="text-[12.5px]">
+                      <li key={`${c.node.id}-${i}`} className="text-[12px]">
                         <span className="text-ink-muted">{c.type.replace('_', ' ')}: </span>
                         <button
                           onClick={() => workgraphApi.node(projectId, c.node.id).then(setDetail)}

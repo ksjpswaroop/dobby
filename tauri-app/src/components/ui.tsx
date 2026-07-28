@@ -210,7 +210,7 @@ export function PageHeader({
         )}
       </div>
       {subtitle && (
-        <p className="mt-1.5 max-w-2xl text-[13.5px] leading-relaxed text-ink-muted">
+        <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-ink-muted">
           {subtitle}
         </p>
       )}

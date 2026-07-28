@@ -105,6 +105,28 @@
     @apply rounded-2xl border border-line bg-surface shadow-soft;
   }
 
+  /* ------------------------------------------------------------------------
+     Type scale
+
+     Reach for one of these, not an arbitrary pixel value:
+
+       10px  micro labels — table keys, timestamps, counts
+       11px  meta and secondary chrome
+       12px  supporting body copy
+       13px  body copy, list rows, subtitles
+       15px  emphasised body
+       17/19 section titles inside a page
+       22/24 document and card titles (.display)
+       30    page titles (.display, via PageHeader)
+       40    the Today greeting (.display)
+
+     There were twenty-four distinct sizes before this, ten of them inside a
+     five-pixel range — 10.5, 11.5, 12.5, 13.5, 14.5. Nobody can see half a
+     pixel, but the browser can, so text meant to sit on one baseline sat on
+     two. If a new size seems necessary, the hierarchy is probably wrong:
+     weight, colour, and the .eyebrow label carry more than size does.
+     ------------------------------------------------------------------------ */
+
   /* Display type. A system serif — ui-serif resolves to New York on macOS
      and a decent transitional elsewhere — so there is no webfont to fetch,
      which matters for something that promises to work offline. */

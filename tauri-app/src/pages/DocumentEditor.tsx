@@ -337,7 +337,7 @@ export default function DocumentEditor() {
             onKeyUp={captureSelection}
             onMouseUp={captureSelection}
             spellCheck
-            className="h-[62vh] w-full resize-none bg-transparent p-4 font-mono text-[12.5px] leading-relaxed text-ink outline-none"
+            className="h-[62vh] w-full resize-none bg-transparent p-4 font-mono text-[12px] leading-relaxed text-ink outline-none"
           />
         </Card>
 
@@ -398,7 +398,7 @@ export default function DocumentEditor() {
                   <Button variant="ghost" className="mb-2" onClick={() => setDiff(null)}>
                     ← Back to history
                   </Button>
-                  <pre className="overflow-x-auto text-[11.5px] leading-relaxed">
+                  <pre className="overflow-x-auto text-[11px] leading-relaxed">
                     {diff.map((line, i) => (
                       <div
                         key={i}
@@ -459,7 +459,7 @@ export default function DocumentEditor() {
                     placeholder={selection.text
                       ? `Comment on "${selection.text.slice(0, 40)}…"`
                       : 'Leave yourself a note…'}
-                    className="w-full rounded-xl border border-line bg-surface2 p-2.5 text-[12.5px] outline-none focus:border-brand/50"
+                    className="w-full rounded-xl border border-line bg-surface2 p-2.5 text-[12px] outline-none focus:border-brand/50"
                   />
                   <Button variant="secondary" className="mt-1.5" onClick={addComment}>
                     Add comment
@@ -479,7 +479,7 @@ export default function DocumentEditor() {
                             {c.anchor_text.slice(0, 90)}
                           </p>
                         )}
-                        <p className="text-[12.5px] text-ink">{c.body}</p>
+                        <p className="text-[12px] text-ink">{c.body}</p>
                         <div className="mt-1 flex items-center gap-2 text-[11px]">
                           <button
                             onClick={async () => {
@@ -518,13 +518,13 @@ export default function DocumentEditor() {
                     Links out
                   </p>
                   {linkMap.outgoing.length === 0 ? (
-                    <p className="mb-4 text-[12.5px] text-ink-muted">
+                    <p className="mb-4 text-[12px] text-ink-muted">
                       None. Use [[Document Title]] to link.
                     </p>
                   ) : (
                     <ul className="mb-4 space-y-1">
                       {linkMap.outgoing.map((l) => (
-                        <li key={l.title} className="text-[12.5px]">
+                        <li key={l.title} className="text-[12px]">
                           {l.resolved ? (
                             <button
                               onClick={() => navigate(`/documents/${l.node_id}`)}
@@ -543,14 +543,14 @@ export default function DocumentEditor() {
                     Backlinks
                   </p>
                   {linkMap.backlinks.length === 0 ? (
-                    <p className="text-[12.5px] text-ink-muted">Nothing links here yet.</p>
+                    <p className="text-[12px] text-ink-muted">Nothing links here yet.</p>
                   ) : (
                     <ul className="space-y-1">
                       {linkMap.backlinks.map((b) => (
                         <li key={b.node_id}>
                           <button
                             onClick={() => navigate(`/documents/${b.node_id}`)}
-                            className="text-[12.5px] text-brand hover:underline"
+                            className="text-[12px] text-brand hover:underline"
                           >
                             {b.title}
                           </button>

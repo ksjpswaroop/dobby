@@ -238,7 +238,7 @@ function SectionTabs() {
         >
           {i.label}
           {i.status === 'planned' && (
-            <span className="rounded bg-surface2 px-1 py-px text-[9px] uppercase tracking-wide text-ink-muted">
+            <span className="rounded bg-surface2 px-1 py-px text-[10px] uppercase tracking-wide text-ink-muted">
               soon
             </span>
           )}
@@ -343,7 +343,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             />
             <div className="min-w-0">
               <p className="text-[11px] font-medium leading-none text-ink">Local-first</p>
-              <p className="mt-1 text-[10.5px] leading-snug text-ink-muted">
+              <p className="mt-1 text-[10px] leading-snug text-ink-muted">
                 All data is on this device
               </p>
             </div>

@@ -135,7 +135,7 @@ export default function Copilot() {
                 <li key={t.id} className="flex items-center gap-1 px-2 py-1">
                   <button
                     onClick={() => setActiveId(t.id)}
-                    className={`min-w-0 flex-1 truncate rounded-lg px-2 py-1.5 text-left text-[12.5px] transition-colors ${
+                    className={`min-w-0 flex-1 truncate rounded-lg px-2 py-1.5 text-left text-[12px] transition-colors ${
                       activeId === t.id ? 'bg-brand/10 text-brand' : 'text-ink hover:bg-surface2'
                     }`}
                   >

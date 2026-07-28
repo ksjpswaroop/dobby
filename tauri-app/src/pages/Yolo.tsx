@@ -181,7 +181,7 @@ export default function Yolo() {
                   {content && (
                     <pre
                       data-selectable
-                      className="max-h-[40vh] overflow-auto whitespace-pre-wrap border-t border-line px-4 py-3 font-mono text-[12.5px] leading-relaxed text-ink"
+                      className="max-h-[40vh] overflow-auto whitespace-pre-wrap border-t border-line px-4 py-3 font-mono text-[12px] leading-relaxed text-ink"
                     >
                       {content}
                     </pre>

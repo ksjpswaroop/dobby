@@ -63,7 +63,7 @@ export function DailyAlignment() {
   return (
     <section>
       {home?.today && (
-        <p className="text-[12.5px] text-ink-muted">{home.today}</p>
+        <p className="text-[12px] text-ink-muted">{home.today}</p>
       )}
 
       <h1 className="display mt-1.5 text-[40px] leading-[1.08] text-ink">
@@ -79,7 +79,7 @@ export function DailyAlignment() {
             <h2 className="display text-[24px] leading-snug text-ink">
               {action.suggestion.title}
             </h2>
-            <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-ink-muted">
+            <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-ink-muted">
               {action.suggestion.reason}
             </p>
             <Button
@@ -115,16 +115,16 @@ export function DailyAlignment() {
                   <span className="plan-numeral mt-0.5 w-5 shrink-0">{i + 1}</span>
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-2">
-                      <span className="text-[14.5px] font-medium text-ink">{b.title}</span>
+                      <span className="text-[15px] font-medium text-ink">{b.title}</span>
                       {i === 0 && <Badge tone="brand">Most important</Badge>}
                       {b.partial && <Badge tone="neutral">first block</Badge>}
                     </span>
                     {b.why && (
-                      <span className="mt-1 block text-[12.5px] leading-relaxed text-ink-muted">
+                      <span className="mt-1 block text-[12px] leading-relaxed text-ink-muted">
                         {b.why}
                       </span>
                     )}
-                    <span className="mt-1.5 flex items-center gap-2 text-[11.5px] text-ink-muted">
+                    <span className="mt-1.5 flex items-center gap-2 text-[11px] text-ink-muted">
                       <span className="tabular-nums">{b.start} – {b.end}</span>
                       {KIND_LABEL[b.kind] && <span>· {KIND_LABEL[b.kind]}</span>}
                     </span>
@@ -139,7 +139,7 @@ export function DailyAlignment() {
           </ul>
 
           {schedule && schedule.not_today.length > 0 && (
-            <p className="mt-3 text-[11.5px] text-ink-muted">
+            <p className="mt-3 text-[11px] text-ink-muted">
               {schedule.not_today.length} more ready, but the day is full.
             </p>
           )}
@@ -147,7 +147,7 @@ export function DailyAlignment() {
       )}
 
       {work.length === 0 && home?.clear && (
-        <p className="mt-8 max-w-lg text-[13.5px] leading-relaxed text-ink-muted">
+        <p className="mt-8 max-w-lg text-[13px] leading-relaxed text-ink-muted">
           Nothing is waiting on you. Capture an idea, or pick something from the
           backlog to shape the day around.
         </p>

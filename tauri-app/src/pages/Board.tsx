@@ -109,7 +109,7 @@ export default function BoardPage() {
                     onClick={() => card.node_id && navigate(`/documents/${card.node_id}`)}
                     className="block w-full text-left"
                   >
-                    <p className="text-[12.5px] font-medium leading-snug text-ink">{card.title}</p>
+                    <p className="text-[12px] font-medium leading-snug text-ink">{card.title}</p>
                   </button>
 
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-ink-muted">

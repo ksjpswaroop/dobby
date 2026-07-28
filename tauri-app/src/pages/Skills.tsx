@@ -99,7 +99,7 @@ export default function Skills() {
                     selected?.id === s.id ? 'bg-brand/10' : 'hover:bg-surface2'
                   }`}
                 >
-                  <span className={`block truncate text-[12.5px] ${
+                  <span className={`block truncate text-[12px] ${
                     selected?.id === s.id ? 'text-brand' : 'text-ink'}`}>
                     {s.name}
                   </span>
@@ -147,8 +147,8 @@ export default function Skills() {
                     <dt className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
                       1 · Intent
                     </dt>
-                    <dd className="mt-0.5 text-[12.5px] text-ink">{selected.goal || '—'}</dd>
-                    <dd className="mt-0.5 text-[11.5px] text-ink-muted">
+                    <dd className="mt-0.5 text-[12px] text-ink">{selected.goal || '—'}</dd>
+                    <dd className="mt-0.5 text-[11px] text-ink-muted">
                       {selected.expected_output}
                     </dd>
                   </div>
@@ -156,7 +156,7 @@ export default function Skills() {
                     <dt className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
                       2 · Sources
                     </dt>
-                    <dd className="mt-0.5 text-[12.5px] text-ink">
+                    <dd className="mt-0.5 text-[12px] text-ink">
                       {selected.sources.map((s) => s.replace('_', ' ')).join(', ') || 'none'}
                     </dd>
                   </div>
@@ -164,10 +164,10 @@ export default function Skills() {
                     <dt className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
                       3 · Guardrails
                     </dt>
-                    <dd className="mt-0.5 text-[12.5px] text-ink">
+                    <dd className="mt-0.5 text-[12px] text-ink">
                       {selected.rules.join(' · ') || 'none'}
                     </dd>
-                    <dd className="mt-0.5 text-[11.5px] text-ink-muted">
+                    <dd className="mt-0.5 text-[11px] text-ink-muted">
                       {selected.local_only ? 'Local data only.' : 'May use the web.'}
                       {selected.max_output_words > 0 &&
                         ` Max ${selected.max_output_words} words.`}
@@ -177,12 +177,12 @@ export default function Skills() {
                     <dt className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
                       4 · Review
                     </dt>
-                    <dd className="mt-0.5 text-[12.5px] text-ink">
+                    <dd className="mt-0.5 text-[12px] text-ink">
                       {selected.approval_mode === 'manual'
                         ? 'You approve every external action'
                         : selected.approval_mode.replace('_', ' ')}
                     </dd>
-                    <dd className="mt-0.5 text-[11.5px] text-ink-muted">
+                    <dd className="mt-0.5 text-[11px] text-ink-muted">
                       Then: {selected.output_action.replace('_', ' ')}
                     </dd>
                   </div>
@@ -199,7 +199,7 @@ export default function Skills() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <ul className="space-y-1">
                     {selected.permissions.can.map((c) => (
-                      <li key={c} className="flex items-start gap-1.5 text-[12.5px] text-ink">
+                      <li key={c} className="flex items-start gap-1.5 text-[12px] text-ink">
                         <IconCheck size={13} className="mt-0.5 shrink-0 text-success" />
                         {c}
                       </li>
@@ -207,7 +207,7 @@ export default function Skills() {
                   </ul>
                   <ul className="space-y-1">
                     {selected.permissions.cannot.map((c) => (
-                      <li key={c} className="flex items-start gap-1.5 text-[12.5px] text-ink-muted">
+                      <li key={c} className="flex items-start gap-1.5 text-[12px] text-ink-muted">
                         <IconX size={13} className="mt-0.5 shrink-0 text-danger" />
                         {c}
                       </li>
@@ -256,7 +256,7 @@ export default function Skills() {
                     </div>
                     <ul className="mb-2 space-y-0.5">
                       {run.trace.map((t) => (
-                        <li key={t.step} className="flex items-start gap-2 text-[11.5px]">
+                        <li key={t.step} className="flex items-start gap-2 text-[11px]">
                           <span className={t.ok ? 'text-success' : 'text-danger'}>
                             {t.ok ? '✓' : '✗'}
                           </span>
@@ -269,7 +269,7 @@ export default function Skills() {
                     </ul>
                     {run.error && <p className="text-[12px] text-danger">{run.error}</p>}
                     {run.output && (
-                      <pre className="max-h-56 overflow-y-auto whitespace-pre-wrap rounded-lg bg-surface2 p-2.5 text-[11.5px] text-ink">
+                      <pre className="max-h-56 overflow-y-auto whitespace-pre-wrap rounded-lg bg-surface2 p-2.5 text-[11px] text-ink">
                         {run.output}
                       </pre>
                     )}
