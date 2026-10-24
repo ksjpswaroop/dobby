@@ -1,255 +1,133 @@
 # Dobby 🧝
 
-**Autonomous Multi-Agent Document Generation Platform**
+**Local-first, interactive document development platform.**
 
-Generate 29 comprehensive product documents from a single idea in under 5 minutes.
+Dobby turns a feature idea into a verified set of engineering artifacts —
+specification, user story, functional analysis, flowchart, pseudocode, TDD
+tests, and documentation — using a local LLM via [Ollama](https://ollama.com).
+Everything runs on your machine: no API keys, no data leaves the box.
 
-```bash
-dobby generate --idea "AI-powered meeting notes app"
-```
+## How it works
 
-## Quickstart
+Dobby is a graph-of-nodes model backed by SQLite, driven by two generation modes:
 
-```bash
-# Install
-pip install -e .
+- **Wizard** — a 7-step guided flow. Each step is generated, then checked by a
+  **deterministic verifier** (rule-based, no second LLM), and only saved once it
+  passes the quality bar. You can edit and regenerate any step.
+- **YOLO** — generate all 7 artifacts in one pass, review the result, then
+  accept (finalize) or reject (discard).
+- **Bulk** — paste many ideas at once and generate every document for all of
+  them concurrently, with a coverage matrix showing each document's score and
+  any gaps.
 
-# Generate all 29 documents
-dobby generate --idea "Your product idea here"
-
-# Check status
-dobby status <job_id>
-
-# View generated docs
-ls ~/dobby-output/<job_id>/
-```
-
-## Features
-
-- **29 Documents:** PRD, Architecture, Security, Backlog, Jira export, and 24 more
-- **13 Specialized Agents:** Each agent is an expert in one document type
-- **Parallel Execution:** 5 concurrent agents with semaphore limiting
-- **State Machine:** Full state persistence with retry logic
-- **Local LLM:** Runs on Ollama (zero API costs, privacy-preserving)
-- **Verification:** Automated cross-reference scoring (95%+ target)
-- **FastAPI Backend:** REST API + CLI + future Tauri desktop app
-
-## Documentation Generated
-
-| Phase | Documents |
-|-------|-----------|
-| **Market & Demand** | DEMAND_ANALYSIS, MARKET_RESEARCH, FEATURE_RESEARCH, PARETO_ANALYSIS |
-| **Requirements** | PRD (39 sections), MERMAID_DIAGRAMS, ARCHITECTURE_DIAGRAMS, FLOW_CHARTS |
-| **Architecture** | ARCHITECTURE, SECURITY_ANALYSIS, DATA_MODEL |
-| **Planning** | IMPLEMENTATION_PLAN, MULTI_PARALLEL_EXECUTION, BACKLOG, JIRA_BACKLOG, WBS, ROADMAP |
-| **Design** | DESIGN_SYSTEM, WIREFRAMES, CODE_STANDARDS |
-| **Testing** | TDD_SPEC, TEST_PLAN, VERIFICATION_PLAN |
-| **Deployment** | DEPLOYMENT, RUNBOOK |
-| **Scaffold** | README, pyproject.toml, LICENSE, src/, tests/ |
+Both write to a dependency **graph** you can visualize, and features are ranked
+in a **backlog** by a Pareto score: `impact·0.6 − effort·0.3 − risk·0.1`.
 
 ## Architecture
 
 ```
-┌──────────────┐      ┌──────────────┐      ┌──────────────┐
-│   CLI / API  │─────▶│  Orchestrator │─────▶│ State Machine │
-└──────────────┘      └──────────────┘      └──────┬───────┘
-                                                   │
-                    ┌──────────────────────────────┼────────┐
-                    │         Agent Pool           │        │
-                    │  ┌──────┐ ┌──────┐ ┌──────┐  │        │
-                    │  │ PRD  │ │Arch  │ │Back-│  │        │
-                    │  │Agent │ │Agent │ │ log  │  │        │
-                    │  └──────┘ └──────┘ └──────┘  │        │
-                    └──────────────────────────────┼────────┘
-                                                   │
-                                                   ▼
-                                          ┌──────────────┐
-                                          │   File       │
-                                          │   System     │
-                                          └──────────────┘
+┌──────────────┐    Tauri IPC / HTTP    ┌──────────────┐     ┌──────────┐
+│  Desktop UI  │ ─────────────────────▶ │  FastAPI     │ ──▶ │  SQLite  │
+│ (React/Tauri)│                        │  (src/api)   │     │  graph   │
+└──────────────┘                        └──────┬───────┘     └──────────┘
+                                               │
+                                     ┌─────────┴──────────┐
+                                     │ Wizard / YOLO       │
+                                     │ pipelines           │
+                                     │  • OllamaClient      │
+                                     │  • DeterministicVerifier
+                                     └─────────┬──────────┘
+                                               ▼
+                                          ┌──────────┐
+                                          │  Ollama  │ (llama.cpp)
+                                          └──────────┘
 ```
 
-## Installation
+The desktop UI uses **dual transport**: Tauri IPC when packaged, or plain HTTP
+to the FastAPI backend when run as a web app.
+
+## Quickstart
 
 ```bash
-# Clone repo
-git clone https://github.com/ksjpswaroop/dobby.git
-cd dobby
+# 1. Backend
+python -m venv .venv && source .venv/bin/activate
+pip install -e .
+dobby serve                      # FastAPI on http://localhost:8000
 
-# Create venv
-python -m venv venv
-source venv/bin/activate  # or `venv\Scripts\activate` on Windows
-
-# Install
-pip install -e ".[dev]"
-
-# Install Ollama (macOS)
-brew install ollama
+# 2. Ollama (in another shell)
 ollama serve
-
-# Pull model
 ollama pull llama3.2
+
+# 3. Desktop UI
+cd tauri-app
+npm install
+npm run tauri dev                # or `npm run dev` for the browser (web) app
 ```
 
-## Usage
-
-### CLI
+## CLI
 
 ```bash
-# Generate documents
-dobby generate --idea "AI-powered meeting notes app"
-
-# With custom output path
-dobby generate --idea "..." --output-path ./my-docs
-
-# With custom model
-dobby generate --idea "..." --ollama-model mistral
-
-# Check job status
-dobby status <job_id>
-
-# Verify documents
-dobby verify <job_id>
+dobby serve [--host H --port P --reload]   # run the API server
+dobby models                               # list installed Ollama models (* = active)
+dobby version
+dobby health                               # check a running backend
 ```
 
-### REST API
+## Managing models
 
-```bash
-# Start server
-uvicorn src.main:app --reload
+The desktop app's **Settings** screen lists installed Ollama models and lets you
+set the active model, pull new ones, remove downloads, change the Ollama host,
+and see app / Python / Ollama versions. Changes persist to
+`~/.dobby/settings.json` and take effect on the next generation.
 
-# Generate documents
-curl -X POST http://localhost:8000/api/v1/generate \
-  -H "Content-Type: application/json" \
-  -d '{"idea": "AI-powered meeting notes app"}'
+## REST API (selected)
 
-# Check status
-curl http://localhost:8000/api/v1/jobs/<job_id>
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET  | `/api/v1/projects/{id}/dashboard` | Dashboard stats |
+| GET/POST | `/api/v1/projects/{id}/backlog` | List / add features |
+| GET  | `/api/v1/projects/{id}/graph` | Graph + Mermaid syntax |
+| POST | `/api/v1/projects/{id}/wizard/start` | Start a wizard session |
+| POST | `/api/v1/wizard/{session_id}/execute` | Run next verified step |
+| POST | `/api/v1/projects/{id}/yolo/generate` | One-shot generate |
+| POST | `/api/v1/projects/{id}/yolo/accept` | Finalize a YOLO run |
+| POST | `/api/v1/projects/{id}/bulk/generate` | Generate all docs for many ideas + coverage report |
+| GET/PUT | `/api/v1/settings` | Read / update settings |
+| GET  | `/api/v1/models` · POST `/api/v1/models/pull` | Model management |
+| GET  | `/api/v1/system/info` | Versions + connectivity |
+
+Full interactive docs at `/docs` when the server is running.
+
+## Project structure
+
 ```
-
-### Python SDK
-
-```python
-from dobby import DocumentOrchestrator
-
-orchestrator = DocumentOrchestrator()
-job_id = await orchestrator.create_job(
-    idea="AI-powered meeting notes app",
-    parallel=True,
-)
-```
-
-## Configuration
-
-Create `.env` file:
-
-```bash
-# Ollama model
-OLLAMA_MODEL=llama3.2
-
-# Output directory
-OUTPUT_PATH=~/dobby-output
-
-# Concurrency limit
-MAX_CONCURRENT_AGENTS=5
-
-# Log level
-LOG_LEVEL=INFO
+src/
+  main.py                 # FastAPI app + router wiring
+  cli.py                  # dobby CLI
+  api/                    # routes, dashboard_routes, generation_routes, settings_routes
+  pipeline/               # wizard, yolo, pareto
+  llm/ollama_client.py    # Ollama client
+  verifiers/              # deterministic verifier (7 rule-based checks)
+  graph/ · db/ · sessions/ · audit/ · settings/
+tauri-app/                # React + Vite + Tauri desktop UI
+tests/                    # pytest suite
 ```
 
 ## Testing
 
 ```bash
-# Run tests
-pytest
-
-# With coverage
-pytest --cov=src --cov-report=html
-
-# Run specific test
-pytest tests/test_state_machine.py -v
+pytest tests/ -o addopts=""
 ```
 
-## Development
+## Configuration
 
-```bash
-# Lint
-ruff check src/
-
-# Type check
-mypy src/
-
-# Format
-black src/
-```
-
-## Project Structure
-
-```
-dobby/
-├── src/
-│   ├── __init__.py
-│   ├── main.py              # FastAPI app
-│   ├── orchestrator.py      # Multi-agent coordinator
-│   ├── state_machine.py     # Job lifecycle
-│   ├── api/
-│   │   └── routes.py        # REST endpoints
-│   ├── agents/
-│   │   ├── base.py          # Base agent
-│   │   ├── prd_agent.py     # PRD generator
-│   │   └── ...              # 12 more agents
-│   └── utils/
-│       └── logging.py       # Structured logging
-├── templates/               # 29 document templates
-├── prompts/                 # 13 agent prompts
-├── tests/                   # Test suite
-├── docs/                    # Documentation
-├── pyproject.toml
-└── README.md
-```
-
-## Roadmap
-
-### v1.0 (Current)
-- ✅ 29 document templates
-- ✅ 13 specialized agents
-- ✅ FastAPI backend
-- ✅ State machine with retry
-- ✅ Parallel execution
-- ⏳ Ollama integration
-- ⏳ Verification scoring
-
-### v1.1 (Q4 2026)
-- [ ] Tauri desktop app
-- [ ] Custom template editor
-- [ ] Progress UI
-
-### v1.5 (Q1 2027)
-- [ ] Cloud deployment
-- [ ] Multi-user support
-- [ ] Team collaboration
-
-### v2.0 (Q2 2027)
-- [ ] Jira/Linear/Notion integration
-- [ ] Template marketplace
-- [ ] Cloud sync
-
-## Contributing
-
-1. Fork the repo
-2. Create feature branch: `git checkout -b feat/my-feature`
-3. Commit changes: `git commit -m 'feat: add my feature'`
-4. Push: `git push origin feat/my-feature`
-5. Open PR
+`~/.dobby/settings.json` (managed from the UI) — `ollama_host`, `model`,
+`theme`, `verification_threshold`. The database lives at `~/.dobby/dobby.db`.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE)
+MIT — see [LICENSE](LICENSE).
 
 ## Author
 
 Swaroop <ksjpswaroop@gmail.com>
-
----
-
-**Dobby is a free elf who serves his master. No API costs, no privacy concerns, just comprehensive documentation.**

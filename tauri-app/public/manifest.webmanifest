@@ -1,0 +1,17 @@
+{
+  "name": "Dobby",
+  "short_name": "Dobby",
+  "description": "Interactive document development platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
